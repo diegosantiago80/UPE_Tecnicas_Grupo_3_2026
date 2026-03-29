@@ -8,4 +8,9 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CapaDeEntidades\CapaDeEntidades.csproj" />
+    <ProjectReference Include="..\CapaDeLogicaDeNegocio_BLL\CapaDeLogicaDeNegocio_BLL.csproj" />
+  </ItemGroup>
+
 </Project>

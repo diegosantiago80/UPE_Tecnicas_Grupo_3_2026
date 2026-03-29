@@ -1,1 +1,6 @@
-<Solution />
+<Solution>
+  <Project Path="CapaDeAccesoADatos_DAL/CapaDeAccesoADatos_DAL.csproj" />
+  <Project Path="CapaDeEntidades/CapaDeEntidades.csproj" />
+  <Project Path="CapaDeLogicaDeNegocio_BLL/CapaDeLogicaDeNegocio_BLL.csproj" />
+  <Project Path="CapaDePresentacion_UI/CapaDePresentacion_UI.csproj" />
+</Solution>
