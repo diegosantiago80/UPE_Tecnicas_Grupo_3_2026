@@ -1,0 +1,1 @@
+# UPE_Tecnicas_GrupoX_2026
