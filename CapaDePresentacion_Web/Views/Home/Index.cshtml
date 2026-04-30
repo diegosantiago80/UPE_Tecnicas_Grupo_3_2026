@@ -1,0 +1,47 @@
+﻿@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    ViewData["Title"] = "Inicio";
+
+    var nombreUsuario = HttpContextAccessor.HttpContext.Session.GetString("NombreUsuario");
+    var idPerfil = HttpContextAccessor.HttpContext.Session.GetInt32("IdPerfil");
+
+    // texto y color del banner segun el rol
+    string nombrePerfil = "Invitado";
+    string colorClase = "secondary";
+
+    switch (idPerfil)
+    {
+        case 1: nombrePerfil = "Administrador"; colorClase = "danger"; break;
+        case 2: nombrePerfil = "Vendedor"; colorClase = "success"; break;
+        case 3: nombrePerfil = "Encargado de Depósito"; colorClase = "primary"; break;
+        case 4: nombrePerfil = "Gerente"; colorClase = "info"; break;
+    }
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-body p-5 text-center">
+                    @{
+                        
+                        var saludo = (idPerfil == 1 || idPerfil == 2) ? "¡Bienvenida" : "¡Bienvenido";
+                    }
+                    <h2 class="display-4 mb-4">@saludo, @nombreUsuario!</h2>
+
+                    <div class="py-5 my-4 bg-@colorClase text-white rounded-3 shadow">
+                        <h1 class="font-weight-bold italic" style="font-size: 3.5rem;">
+                            Vista del usuario @nombrePerfil
+                        </h1>
+                    </div>
+
+                    <p class="lead text-muted">
+                        Usted ha ingresado al sistema con privilegios de <strong>@nombrePerfil</strong>.
+                        El menú superior se ha adaptado automáticamente a sus permisos.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

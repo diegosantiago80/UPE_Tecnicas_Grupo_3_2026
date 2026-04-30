@@ -1,0 +1,28 @@
+@{
+    ViewData["Title"] = "Sitio en construcción";
+}
+
+@* fallback para rutas todavia sin implementar, conserva el _Layout para no perder la nav *@
+
+<div class="text-center py-5">
+    <h1 class="display-4 mb-4">Sitio en construcción</h1>
+
+    <img src="~/images/en-construccion.gif"
+         alt="Sitio en construcción"
+         class="img-fluid mb-4"
+         style="max-width: 420px;"
+         onerror="this.style.display='none'; document.getElementById('fallback-emoji').style.display='block';" />
+
+    <div id="fallback-emoji" style="display:none; font-size: 8rem;">
+        🚧 @*este icono sale si falla el gif*@
+    </div>
+
+    <p class="lead text-muted mt-3">
+        Este módulo todavía no está implementado.<br />
+        Volvé al inicio o probá otra opción del menú.
+    </p>
+
+    <a class="btn btn-primary mt-3" asp-controller="Home" asp-action="Index">
+        Volver al inicio
+    </a>
+</div>
