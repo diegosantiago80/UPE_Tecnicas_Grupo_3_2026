@@ -1,5 +1,6 @@
-﻿using CapaDeEntidades;
-using CapaDeLogicaDeNegocio_BLL.Estrategias; // Importante para ver tu carpeta nueva
+﻿using CapaDeAccesoADatos_DAL;
+using CapaDeEntidades;
+using CapaDeLogicaDeNegocio_BLL.Estrategias;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,36 +9,40 @@ namespace CapaDeLogicaDeNegocio_BLL
 {
     public class VentaBLL
     {
-        // Lista temporal de clientes (hasta que hagas el CU de Gestionar Cliente)
-        private static List<Cliente> _clientes = new List<Cliente>
-        {
-            new Cliente(1, "Juan", "Perez", "12345678", "112233", "j@m.com", "OSDE", true),
-            new Cliente(2, "Ana", "Gomez", "87654321", "445566", "a@m.com", "Particular", true)
-        };
+        private readonly ClienteDAL _clienteDAL = new ClienteDAL();
 
-        // Paso 2 y 3 del CU: Buscar cliente por DNI
         public Cliente BuscarClientePorDni(string dni)
         {
-            var cliente = _clientes.FirstOrDefault(c => c.Dni == dni);
+            var cliente = _clienteDAL.BuscarPorDni(dni);
             if (cliente == null)
             {
-                // Mensaje 04 del CU: Cliente no registrado
                 throw new Exception("Cliente no registrado. Debe darlo de alta.");
             }
             return cliente;
         }
 
-        // Paso 6 del CU: Calcular el total usando el patrón Strategy
-        public decimal ObtenerTotalConDescuento(Cliente cliente, decimal subtotal)
+        public decimal CalcularTotalVenta(Cliente cliente, List<Medicamento> medicamentosVendidos)
         {
             ICalculadorDescuento estrategia;
 
-            if (cliente.ObraSocial.ToLower() == "particular")
+            // 1. Definimos la estrategia según el perfil del cliente
+            if (cliente.ObraSocial.Equals("Particular", StringComparison.OrdinalIgnoreCase))
                 estrategia = new DescuentoParticular();
             else
                 estrategia = new DescuentoObraSocial();
 
-            return estrategia.CalcularTotal(subtotal);
+            decimal totalAcumulado = 0;
+
+            // 2. Iteramos los productos para aplicar la estrategia a cada uno
+            foreach (var med in medicamentosVendidos)
+            {
+                decimal subtotalItem = med.PrecioVenta * med.StockActual;
+
+                // 3. La estrategia recibe el monto y el flag de receta de ese medicamento específico
+                totalAcumulado += estrategia.CalcularTotal(subtotalItem, med.RequiereReceta);
+            }
+
+            return totalAcumulado;
         }
     }
 }

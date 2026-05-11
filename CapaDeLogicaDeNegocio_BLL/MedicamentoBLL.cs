@@ -29,5 +29,22 @@ namespace CapaDeLogicaDeNegocio_BLL
 
             return _medicamentoDAL.ActualizarStockPorIngreso(itemsComprados);
         }
+
+        public bool ProcesarEgresoStock(List<Medicamento> itemsVendidos)
+        {
+            // Regla de dominio: si no hay ítems, no hay nada que descontar
+            if (itemsVendidos == null || itemsVendidos.Count == 0)
+            {
+                return false;
+            }
+
+            return _medicamentoDAL.ActualizarStockPorVenta(itemsVendidos);
+        }
+
+        public Medicamento? ObtenerPorId(int id)
+        {
+            // Usamos el método ObtenerTodos() que ya existe para buscar el que necesitamos
+            return ObtenerTodos().Find(m => m.IdMedicamento == id);
+        }
     }
 }

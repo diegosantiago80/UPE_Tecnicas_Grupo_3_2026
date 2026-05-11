@@ -2,9 +2,9 @@
 {
     public class DescuentoParticular : ICalculadorDescuento
     {
-        public decimal CalcularTotal(decimal subtotal)
+        public decimal CalcularTotal(decimal subtotal, bool aplicaDescuento)
         {
-            return subtotal; // Sin descuento
+            return subtotal; // El particular siempre paga el 100%
         }
     }
 }

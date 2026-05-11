@@ -2,6 +2,6 @@
 {
     public interface ICalculadorDescuento
     {
-        decimal CalcularTotal(decimal subtotal);
+        decimal CalcularTotal(decimal subtotal, bool aplicaDescuento);
     }
 }

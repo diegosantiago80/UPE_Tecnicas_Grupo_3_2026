@@ -47,5 +47,25 @@ namespace CapaDeAccesoADatos_DAL
                 return false;
             }
         }
+
+        public bool ActualizarStockPorVenta(List<Medicamento> itemsVendidos)
+        {
+            try
+            {
+                foreach (var item in itemsVendidos)
+                {
+                    var medEnStock = _stockEnMemoria.FirstOrDefault(m => m.IdMedicamento == item.IdMedicamento);
+                    if (medEnStock != null)
+                    {
+                        medEnStock.StockActual -= item.StockActual;
+                    }
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
