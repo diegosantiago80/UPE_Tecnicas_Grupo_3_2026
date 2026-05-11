@@ -1,0 +1,190 @@
+﻿@{
+    ViewData["Title"] = "Gestionar Clientes";
+}
+
+<div class="container mt-4">
+    <div class="card shadow border-success">
+        <div class="card-header bg-success text-white">
+            <h4><i class="bi bi-people"></i> Gestión de Clientes (Vendedor)</h4>
+        </div>
+        <div class="card-body">
+            <!-- BÚSQUEDA -->
+            <form id="formBusqueda" onsubmit="event.preventDefault(); document.getElementById('btnBuscar').click();">
+            <div class="row mb-3">
+                <div class="col-md-9">
+                    <input type="text" id="txtBusquedaDni" class="form-control" 
+                    placeholder="Ingrese el DNI para buscar o registrar..."
+                    pattern="\d+"
+                    title="Ingrese solo números"
+                               maxlength="8" minlength="8">
+                </div>
+                <div class="col-md-3">
+                 
+                        <button type="button" class="btn btn-success w-100" id="btnBuscar">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+                        </form>
+            <hr />
+
+            <!-- FORMULARIO DE GESTIÓN -->
+            <div id="formEdicion" style="display:none;">
+                <form id="formCliente">
+                <input type="hidden" id="txtIdCliente" />
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">DNI</label> 
+                            <input type="text" id="txtDniDetalle" class="form-control" disabled required pattern="\d+" title="Ingrese solo números">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Nombre</label>
+                            <input type="text" id="txtNombre" class="form-control" disabled required pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$" title="Ingrese solo letras">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Apellido</label>
+                            <input type="text" id="txtApellido" class="form-control" disabled required pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$" title="Ingrese solo letras">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Teléfono</label>
+                            <input type="text" id="txtTelefono" class="form-control" disabled required pattern="\d+" title="Ingrese solo números">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Obra Social</label>
+                        <select id="cboObraSocial" class="form-select" disabled required>
+                            <option value="Particular">Particular</option>
+                            <option value="PAMI">PAMI</option>
+                            <option value="IOMA">IOMA</option>
+                            <option value="OSDE">OSDE</option>
+                        </select>
+                    </div>
+                </div>
+                </form>
+                <div class="mt-4 text-end">
+                    <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">Salir</button>
+                    <button id="btnModificar" class="btn btn-warning">Modificar Datos</button>
+                    <button id="btnGuardar" class="btn btn-success" style="display:none">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const btnBuscar = document.getElementById("btnBuscar");
+        const btnNuevo = document.getElementById("btnNuevo");
+        const btnModificar = document.getElementById("btnModificar");
+        const btnGuardar = document.getElementById("btnGuardar");
+        const formEdicion = document.getElementById("formEdicion");
+
+        function habilitarCampos(estado) {
+            const selectores = "#formEdicion input, #formEdicion select";
+            document.querySelectorAll(selectores).forEach(el => {
+                if (el.id !== "txtIdCliente") el.disabled = !estado;
+            });
+        }
+
+        // --- 1. CU: BUSCAR CLIENTE ---
+        btnBuscar.addEventListener("click", function() {
+            const inputBusqueda = document.getElementById("txtBusquedaDni");
+            const dni = inputBusqueda.value;
+
+            if (!inputBusqueda.checkValidity()) {
+                inputBusqueda.reportValidity();
+                return; // No busca si hay letras
+            }
+
+            if (!dni) return alert("Por favor, ingrese un DNI para buscar.");
+
+            fetch(`/Cliente/ObtenerPorDni?dni=${dni}`)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        // El sistema informa que el cliente existe y muestra sus datos
+                        const c = res.data;
+                        document.getElementById("txtIdCliente").value = c.idCliente;
+                        document.getElementById("txtDniDetalle").value = c.dni;
+                        document.getElementById("txtNombre").value = c.nombre;
+                        document.getElementById("txtApellido").value = c.apellido;
+                        document.getElementById("txtTelefono").value = c.telefono;
+                        document.getElementById("cboObraSocial").value = c.obraSocial;
+
+                        formEdicion.style.display = "block";
+                        habilitarCampos(false);
+                        btnModificar.style.display = "inline-block";
+                        btnGuardar.style.display = "none";
+                    } else {
+                        // F.Alt 1: El cliente no existe, ofrecemos crear
+                        if (confirm("Cliente no encontrado. ¿Desea registrar uno nuevo con el DNI " + dni + "?")) {
+                            prepararParaNuevo(dni);
+                        }
+                    }
+                })
+                .catch(err => alert("Error en la conexión con el servidor."));
+        });
+
+        // --- 2. FUNCIÓN PARA LIMPIAR Y HABILITAR (CREAR CLIENTE) ---
+        function prepararParaNuevo(dni) {
+            document.getElementById("txtIdCliente").value = "0";
+            document.getElementById("txtDniDetalle").value = dni;
+            document.getElementById("txtNombre").value = "";
+            document.getElementById("txtApellido").value = "";
+            document.getElementById("txtTelefono").value = "";
+            document.getElementById("cboObraSocial").value = "Particular";
+
+            formEdicion.style.display = "block";
+            habilitarCampos(true);
+            btnModificar.style.display = "none";
+            btnGuardar.style.display = "inline-block";
+
+            document.getElementById("txtNombre").focus();
+        }
+
+        // --- 3. CU: MODIFICAR DATOS CLIENTE ---
+        btnModificar.addEventListener("click", function() {
+            habilitarCampos(true);
+            this.style.display = "none";
+            btnGuardar.style.display = "inline-block";
+        });
+
+        // --- 4. PERSISTENCIA (GUARDAR EN DAL) ---
+        btnGuardar.addEventListener("click", function() {
+            const formulario = document.getElementById("formCliente") || document.getElementById("formEdicion");
+            if (!formulario.checkValidity()) {
+                formulario.reportValidity();
+                return;
+            }
+            
+            const id = parseInt(document.getElementById("txtIdCliente").value);
+            const cliente = {
+                IdCliente: id,
+                Dni: document.getElementById("txtDniDetalle").value,
+                Nombre: document.getElementById("txtNombre").value,
+                Apellido: document.getElementById("txtApellido").value,
+                Telefono: document.getElementById("txtTelefono").value,
+                ObraSocial: document.getElementById("cboObraSocial").value,
+                Activo: true
+            };
+
+            // Definimos la ruta según si el ID es nuevo (0) o existente
+            const url = id === 0 ? '/Cliente/Crear' : '/Cliente/Modificar';
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cliente)
+            })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        alert("✅ Operación realizada con éxito.");
+                        location.reload(); 
+                    } else {
+                        alert("❌ Error: No se pudo completar la operación.");
+                    }
+                });
+        });
+
+    </script>
+}

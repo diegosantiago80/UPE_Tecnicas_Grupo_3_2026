@@ -9,8 +9,7 @@ namespace CapaDeLogicaDeNegocio_BLL
     // ademas arma los perfiles (composite) que se usan para los permisos
     public class AuthService
     {
-        private static AuthService _instance = null;
-        private static readonly object _lock = new object();
+        private static readonly AuthService _instance = new AuthService();
 
         private readonly List<UsuarioDatos> _usuarios;
         private readonly Dictionary<int, PerfilComposite> _perfilesPorId;
@@ -25,14 +24,7 @@ namespace CapaDeLogicaDeNegocio_BLL
 
         public static AuthService Instance
         {
-            get
-            {
-                lock (_lock)
-                {
-                    if (_instance == null) _instance = new AuthService();
-                    return _instance;
-                }
-            }
+            get { return _instance; }
         }
 
         // los nombres de permiso van en espejo con los cu de la documentacion del grupo

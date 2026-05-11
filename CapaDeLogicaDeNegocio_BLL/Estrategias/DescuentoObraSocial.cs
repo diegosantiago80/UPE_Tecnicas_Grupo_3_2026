@@ -2,9 +2,11 @@
 {
     public class DescuentoObraSocial : ICalculadorDescuento
     {
-        public decimal CalcularTotal(decimal subtotal)
+        public decimal CalcularTotal(decimal subtotal, bool aplicaDescuento)
         {
-            return subtotal * 0.60m; // Aplica el 40% de descuento
+            // Si el medicamento requiere receta (aplicaDescuento = true), hacemos el 40%
+            // Si es venta libre, cobramos el subtotal entero
+            return aplicaDescuento ? (subtotal * 0.60m) : subtotal;
         }
     }
 }

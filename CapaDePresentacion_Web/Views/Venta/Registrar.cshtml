@@ -1,0 +1,291 @@
+﻿@{
+    ViewData["Title"] = "Registrar Venta";
+    var medicamentos = ViewBag.Medicamentos as List<CapaDeEntidades.Medicamento> ?? new List<CapaDeEntidades.Medicamento>();
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h4><i class="bi bi-cash-stack"></i> Registrar Venta de Farmacia</h4>
+        </div>
+        <div class="card-body">
+            <form id="formVenta">
+                <div class="row mb-4 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">DNI Cliente</label>
+                        <input type="text" id="dniCliente" class="form-control" required
+                               pattern="\d+"
+                               title="Ingrese solo números"
+                               maxlength="8" minlength="8">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Nombre del Cliente</label>
+                        <input type="text" id="nombreCliente" class="form-control" style="background-color: #e9ecef; font-weight: bold;" readonly placeholder="Esperando DNI...">
+                    </div>
+                    <div class="col-md-2">
+ 
+                        <label class="form-label fw-bold">Fecha</label>
+                        <input type="text" class="form-control text-center" value="@DateTime.Now.ToShortDateString()" disabled />
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Cobro</label>
+                        <select class="form-select" id="tipoDescuento" disabled>
+                            <option value="Particular">Particular</option>
+                            <option value="ObraSocial">Obra Social</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- SELECCIÓN DE PRODUCTOS -->
+                <div class="row g-3 align-items-end mb-4">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Medicamento</label>
+                        <select class="form-select" id="idMedicamento">
+                            <option value="">-- Seleccione del Stock --</option>
+                            @foreach (var med in medicamentos)
+                            {
+                                <option value="@med.IdMedicamento"
+                                        data-receta="@med.RequiereReceta"
+                                        data-precio="@med.PrecioVenta"
+                                        data-stock="@med.StockActual">
+                                    @med.Nombre (@med.Descripcion) - Stock: @med.StockActual
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Cantidad</label>
+                        <input type="number" id="cantidad" class="form-control" min="1" value="1" />
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <div class="form-check mb-2 d-inline-block text-start">
+                            <input class="form-check-input" type="checkbox" id="checkReceta">
+                            <label class="form-check-label" for="checkReceta">Tiene Receta</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-primary w-100" id="btnAgregar">Agregar</button>
+                    </div>
+                </div>
+
+                <!-- DETALLE -->
+                <table class="table table-bordered" id="tablaDetalle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Medicamento</th>
+                            <th class="text-center">Cant.</th>
+                            <th class="text-end">Unitario</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-center">Eliminar</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <div class="text-end mt-3">
+                    <h5 class="text-muted">Subtotal Bruto: <span id="txtSubtotalBruto">$ 0.00</span></h5>
+                    
+                    <div id="avisoVentaLibre" class="text-danger fw-bold mb-2" style="display: none;">
+                        <i class="bi bi-exclamation-triangle"></i> Venta libre: No aplica descuento.
+                    </div>
+
+                    <h3 class="text-success">Total a Cobrar: <span id="txtTotalFinal">$ 0.00</span></h3>
+                    <button type="button" class="btn btn-success btn-lg mt-2" id="btnFinalizar">Confirmar Venta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let itemsVenta = [];
+
+        const EstrategiasDescuento = {
+            "ObraSocial": (subtotal, requiereReceta) => {
+                return requiereReceta ? (subtotal * 0.60) : subtotal;
+            },
+            "Particular": (subtotal, requiereReceta) => {
+                return subtotal;
+            }
+        };
+
+        // --- VALIDACIÓN CLIENTE ---
+        document.getElementById("dniCliente").addEventListener("input", async function() {
+            const dni = this.value.trim();
+            const txtNombre = document.getElementById("nombreCliente");
+            const selectorCobro = document.getElementById("tipoDescuento");
+
+            if (dni === "") {
+                txtNombre.value = "";
+                return;
+            }
+            
+            if (!this.checkValidity()) {
+                this.reportValidity(); // Muestra el mensaje "Ingrese solo números"
+                return; // Detiene la ejecución si hay letras o no son 8 números
+            }
+            
+            if (dni.length > 7 && dni.length <= 11) {
+                const resp = await fetch(`/Cliente/ObtenerPorDni?dni=${dni}`);
+                const res = await resp.json();
+
+                if (res.success) {
+                    txtNombre.value = res.data.nombre + " " + res.data.apellido;
+                    txtNombre.style.color = "blue";
+                    selectorCobro.value = (res.data.obraSocial === "Particular") ? "Particular" : "ObraSocial";
+                    actualizarTotales(); // Recalcular si cambia el cliente
+                } else {
+                    txtNombre.value = "CLIENTE NO ENCONTRADO";
+                    txtNombre.style.color = "red"; // Se emite el mensaje 04
+                    if (confirm("El cliente no está registrado. ¿Desea darlo de alta ahora?")) {
+                        window.location.href = "/Cliente/Gestionar";
+                    }
+                }
+            }
+        });
+
+        // --- AGREGAR MEDICAMENTO ---
+        document.getElementById("btnAgregar").addEventListener("click", function() {
+            const select = document.getElementById("idMedicamento");
+            const option = select.options[select.selectedIndex];
+            const dni = document.getElementById("dniCliente").value;
+
+            if (!dni) return alert("Ingrese el DNI del cliente primero.");
+            if (!select.value) return alert("Seleccione un producto");
+            
+            const cant = parseInt(document.getElementById("cantidad").value);
+            const stock = parseInt(option.getAttribute("data-stock"));
+
+            if (cant > stock) return alert("Producto sin stock."); // Se emite el mensaje 05
+
+            const requiereReceta = option.getAttribute("data-receta") === "True";
+            const tieneReceta = document.getElementById("checkReceta").checked;
+
+            if (requiereReceta && !tieneReceta) {
+                return alert("⚠️ Este medicamento requiere receta obligatoria."); // Se emite el mensaje 06
+            }
+
+            const item = {
+                id: parseInt(select.value),
+                nombre: option.text.substring(0, option.text.indexOf("- Stock")).trim(),
+                cantidad: cant,
+                precio: parseFloat(option.getAttribute("data-precio")),
+                requiereReceta: requiereReceta
+            };
+
+            itemsVenta.push(item);
+            renderizarTabla();
+            actualizarTotales();
+            
+            select.selectedIndex = 0;
+            document.getElementById("cantidad").value = 1;
+            document.getElementById("checkReceta").checked = false;
+        });
+
+        function renderizarTabla() {
+            const tbody = document.querySelector("#tablaDetalle tbody");
+            const tipoCobro = document.getElementById("tipoDescuento").value;
+            tbody.innerHTML = "";
+
+            itemsVenta.forEach((item, index) => {
+                const subtotalBruto = item.precio * item.cantidad;
+                
+                // USAMOS LA ESTRATEGIA para calcular el subtotal neto de este item
+                const calcular = EstrategiasDescuento[tipoCobro];
+                const subtotalNeto = calcular(subtotalBruto, item.requiereReceta);
+                
+                // Lógica para la etiqueta visual de descuento
+                const tieneDescuento = subtotalNeto < subtotalBruto;
+                const etiqueta = tieneDescuento
+                    ? `<span class="badge bg-success">DTO. OS (40%)</span>`
+                    : `<span class="badge bg-secondary">SIN DTO.</span>`;
+
+                const fila = `<tr>
+                                            <td>
+                                                ${item.nombre} <br>
+                                                <small class="text-muted">${item.requiereReceta ? 'Bajo Receta' : 'Venta Libre'}</small>
+                                            </td>
+                                            <td class="text-center">${item.cantidad}</td>
+                                            <td class="text-end">$ ${item.precio.toFixed(2)}</td>
+                                            <td class="text-end">
+                                                <div>$ ${subtotalNeto.toFixed(2)}</div>
+                                                <div>${etiqueta}</div>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-danger btn-sm" onclick="eliminarFila(${index})">X</button>
+                                            </td>
+                                        </tr>`;
+                tbody.innerHTML += fila;
+            });
+        }
+
+        function eliminarFila(index) {
+            itemsVenta.splice(index, 1);
+            renderizarTabla();
+            actualizarTotales();
+        }
+
+        function actualizarTotales() {
+            let bruto = 0;
+            let final = 0;
+            const tipoCobro = document.getElementById("tipoDescuento").value;
+
+            // Elegimos la estrategia UNA SOLA VEZ (Patrón Strategy)
+            const calcular = EstrategiasDescuento[tipoCobro];
+
+            itemsVenta.forEach(item => {
+                const sub = item.precio * item.cantidad;
+                bruto += sub;
+                
+                // Aplicamos la estrategia elegida a cada producto
+                final += calcular(sub, item.requiereReceta);
+            });
+
+            document.getElementById("txtSubtotalBruto").innerText = `$ ${bruto.toFixed(2)}`;
+            document.getElementById("txtTotalFinal").innerText = `$ ${final.toFixed(2)}`;
+            
+            // Re-renderizamos la tabla para actualizar las etiquetas de "CON DTO" o "SIN DTO"
+            // en caso de que haya cambiado el tipo de cobro al buscar el DNI
+            renderizarTabla();
+        }
+
+        // --- FINALIZAR VENTA ---
+        document.getElementById("btnFinalizar").addEventListener("click", function() {
+            if (itemsVenta.length === 0) return alert("Cargue al menos un producto.");
+
+            const datos = {
+                DniCliente: document.getElementById("dniCliente").value,
+                TipoCobro: document.getElementById("tipoDescuento").value,
+                Lineas: itemsVenta.map(i => ({
+                    IdMedicamento: i.id,
+                    Cantidad: i.cantidad,
+                    Precio: i.precio
+                }))
+            };
+
+            fetch('/Venta/ProcesarVenta', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            })
+                .then(async res => {
+                    if (res.ok) {
+                        const result = await res.json();
+                        alert(`✅ ${result.msg}\nTotal cobrado: $${result.totalCobrado.toFixed(2)}`);
+                        location.reload();
+                    } else {
+                        const errorText = await res.text();
+                        alert("❌ Error: " + errorText);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("❌ Error de red o del servidor.");
+                });
+        });
+    </script>
+}
