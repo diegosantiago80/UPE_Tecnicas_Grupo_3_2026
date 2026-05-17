@@ -39,7 +39,9 @@ namespace CapaDeLogicaDeNegocio_BLL
             var registrarCompra = new PermisoSimple { Nombre = "RegistrarCompra" };
             var gestionarMedicamentos = new PermisoSimple { Nombre = "GestionarMedicamentos" };
             var gestionarLaboratorios = new PermisoSimple { Nombre = "GestionarLaboratorios" };
-            var verReportes = new PermisoSimple { Nombre = "VerReportes" };
+            var verReportes = new PermisoSimple { Nombre = "VerReporte" };
+            var generarEstadisticas = new PermisoSimple { Nombre = "GenerarEstadisticas" };
+            var generarProyeccion = new PermisoSimple { Nombre = "GenerarProyeccion" };
 
             // admin: solo modulo de seguridad (abm usuarios + perfiles)
             var admin = new PerfilComposite { Nombre = "Administrador" };
@@ -64,6 +66,8 @@ namespace CapaDeLogicaDeNegocio_BLL
             // gerente: solo reportes
             var gerente = new PerfilComposite { Nombre = "Gerente" };
             gerente.Agregar(verReportes);
+            gerente.Agregar(generarEstadisticas);
+            gerente.Agregar(generarProyeccion);
             _perfilesPorId[4] = gerente;
         }
 

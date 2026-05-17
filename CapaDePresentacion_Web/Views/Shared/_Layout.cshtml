@@ -81,10 +81,24 @@
                         </li>
                     }
 
-                    @if (auth.PerfilTienePermiso(idPerfil, "VerReportes"))
+                    @if (auth.PerfilTienePermiso(idPerfil, "VerReporte"))
                     {
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Reporte" asp-action="Index">Reportes</a>
+                            <a class="nav-link text-dark" asp-controller="Reporte" asp-action="VerReporte">Reportes</a>
+                        </li>
+                    }
+
+                    @if (auth.PerfilTienePermiso(idPerfil, "GenerarEstadisticas"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-controller="Reporte" asp-action="GenerarEstadistica">Estadísticas</a>
+                        </li>
+                    }
+
+                    @if (auth.PerfilTienePermiso(idPerfil, "GenerarProyeccion"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-controller="Reporte" asp-action="Proyeccion">Proyecciones</a>
                         </li>
                     }
 
