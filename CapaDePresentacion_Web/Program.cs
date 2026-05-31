@@ -1,3 +1,5 @@
+using CapaDeAccesoADatos_DAL;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
@@ -6,6 +8,12 @@ builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+// IConfiguration lee appsettings.json automaticamente al crear el builder
+IConfiguration configuration = builder.Configuration;
+
+// se lee de appsettings.json y se carga en el DAL una sola vez al arrancar
+Conexion.CadenaDeConexion = configuration.GetConnectionString("FarmaciaDB") ?? string.Empty;
 
 if (!app.Environment.IsDevelopment())
 {
@@ -20,7 +28,6 @@ app.UseSession();
 
 app.UseAuthorization();
 
-// los 404 (rutas todavia sin implementar) van a la pantalla "en construccion"
 app.UseStatusCodePagesWithReExecute("/Home/EnConstruccion");
 
 app.MapStaticAssets();
