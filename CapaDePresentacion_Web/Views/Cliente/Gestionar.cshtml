@@ -1,64 +1,75 @@
 ﻿@{
     ViewData["Title"] = "Gestionar Clientes";
 }
-
 <div class="container mt-4">
     <div class="card shadow border-success">
         <div class="card-header bg-success text-white">
             <h4><i class="bi bi-people"></i> Gestión de Clientes (Vendedor)</h4>
         </div>
         <div class="card-body">
-            <!-- BÚSQUEDA -->
             <form id="formBusqueda" onsubmit="event.preventDefault(); document.getElementById('btnBuscar').click();">
-            <div class="row mb-3">
-                <div class="col-md-9">
-                    <input type="text" id="txtBusquedaDni" class="form-control" 
-                    placeholder="Ingrese el DNI para buscar o registrar..."
-                    pattern="\d+"
-                    title="Ingrese solo números"
+                <div class="row mb-3">
+                    <div class="col-md-9">
+                        <input type="text" id="txtBusquedaDni" class="form-control"
+                               placeholder="Ingrese el DNI para buscar o registrar..."
+                               pattern="\d+"
+                               title="Ingrese solo números"
                                maxlength="8" minlength="8">
-                </div>
-                <div class="col-md-3">
-                 
+                    </div>
+                    <div class="col-md-3">
                         <button type="button" class="btn btn-success w-100" id="btnBuscar">
-                        <i class="bi bi-search"></i> Buscar
-                    </button>
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
                 </div>
-            </div>
-                        </form>
+            </form>
             <hr />
 
-            <!-- FORMULARIO DE GESTIÓN -->
             <div id="formEdicion" style="display:none;">
                 <form id="formCliente">
-                <input type="hidden" id="txtIdCliente" />
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">DNI</label> 
+                    <input type="hidden" id="txtIdCliente" />
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">DNI</label>
                             <input type="text" id="txtDniDetalle" class="form-control" disabled required pattern="\d+" title="Ingrese solo números">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Nombre</label>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Nombre</label>
                             <input type="text" id="txtNombre" class="form-control" disabled required pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$" title="Ingrese solo letras">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Apellido</label>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Apellido</label>
                             <input type="text" id="txtApellido" class="form-control" disabled required pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$" title="Ingrese solo letras">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Teléfono</label>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Teléfono</label>
                             <input type="text" id="txtTelefono" class="form-control" disabled required pattern="\d+" title="Ingrese solo números">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" id="txtEmail" class="form-control" disabled required placeholder="ejemplo@correo.com">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Obra Social</label>
+                            <select id="cboObraSocial" class="form-select" disabled required>
+                                <option value="Particular">Particular</option>
+                                <option value="PAMI">PAMI</option>
+                                <option value="IOMA">IOMA</option>
+                                <option value="OSDE">OSDE</option>
+                                <option value="SANCOR">SANCOR</option>
+                                <option value="SWISSMEDICAL">SWISS MEDICAL</option>
+                                <option value="MEDIFE">MEDIFE</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chkActivo" disabled>
+                                <label class="form-check-label fw-bold" for="chkActivo" id="lblActivo">
+                                    Cliente Activo
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Obra Social</label>
-                        <select id="cboObraSocial" class="form-select" disabled required>
-                            <option value="Particular">Particular</option>
-                            <option value="PAMI">PAMI</option>
-                            <option value="IOMA">IOMA</option>
-                            <option value="OSDE">OSDE</option>
-                        </select>
-                    </div>
-                </div>
                 </form>
                 <div class="mt-4 text-end">
                     <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">Salir</button>
@@ -73,12 +84,25 @@
 @section Scripts {
     <script>
         const btnBuscar = document.getElementById("btnBuscar");
-        const btnNuevo = document.getElementById("btnNuevo");
         const btnModificar = document.getElementById("btnModificar");
         const btnGuardar = document.getElementById("btnGuardar");
         const formEdicion = document.getElementById("formEdicion");
+        document.getElementById("chkActivo").addEventListener("change", actualizarTextoActivo);
+
+
+                function actualizarTextoActivo() {
+            const chk = document.getElementById("chkActivo");
+            const lbl = document.getElementById("lblActivo");
+            if (chk.checked) {
+                lbl.textContent = "Cliente Activo";
+                lbl.className = "form-check-label fw-bold text-success"; 
+            } else {
+                lbl.textContent = "Cliente Inactivo";
+                lbl.className = "form-check-label fw-bold text-danger";  
+        }
 
         function habilitarCampos(estado) {
+            
             const selectores = "#formEdicion input, #formEdicion select";
             document.querySelectorAll(selectores).forEach(el => {
                 if (el.id !== "txtIdCliente") el.disabled = !estado;
@@ -92,7 +116,7 @@
 
             if (!inputBusqueda.checkValidity()) {
                 inputBusqueda.reportValidity();
-                return; // No busca si hay letras
+                return;
             }
 
             if (!dni) return alert("Por favor, ingrese un DNI para buscar.");
@@ -101,21 +125,25 @@
                 .then(res => res.json())
                 .then(res => {
                     if (res.success) {
-                        // El sistema informa que el cliente existe y muestra sus datos
                         const c = res.data;
                         document.getElementById("txtIdCliente").value = c.idCliente;
                         document.getElementById("txtDniDetalle").value = c.dni;
                         document.getElementById("txtNombre").value = c.nombre;
                         document.getElementById("txtApellido").value = c.apellido;
                         document.getElementById("txtTelefono").value = c.telefono;
+                        document.getElementById("txtEmail").value = c.email; 
                         document.getElementById("cboObraSocial").value = c.obraSocial;
+                        document.getElementById("chkActivo").checked = c.activo; 
+
+
+        actualizarTextoActivo(); 
+
 
                         formEdicion.style.display = "block";
                         habilitarCampos(false);
                         btnModificar.style.display = "inline-block";
                         btnGuardar.style.display = "none";
                     } else {
-                        // F.Alt 1: El cliente no existe, ofrecemos crear
                         if (confirm("Cliente no encontrado. ¿Desea registrar uno nuevo con el DNI " + dni + "?")) {
                             prepararParaNuevo(dni);
                         }
@@ -131,10 +159,18 @@
             document.getElementById("txtNombre").value = "";
             document.getElementById("txtApellido").value = "";
             document.getElementById("txtTelefono").value = "";
+            document.getElementById("txtEmail").value = "";
             document.getElementById("cboObraSocial").value = "Particular";
+
+            document.getElementById("chkActivo").checked = true;
+            actualizarTextoActivo();
 
             formEdicion.style.display = "block";
             habilitarCampos(true);
+
+            document.getElementById("txtDniDetalle").disabled = true;
+            document.getElementById("chkActivo").disabled = true;
+
             btnModificar.style.display = "none";
             btnGuardar.style.display = "inline-block";
 
@@ -144,18 +180,20 @@
         // --- 3. CU: MODIFICAR DATOS CLIENTE ---
         btnModificar.addEventListener("click", function() {
             habilitarCampos(true);
+            document.getElementById("txtDniDetalle").disabled = true;
+            document.getElementById("chkActivo").disabled = false;
             this.style.display = "none";
             btnGuardar.style.display = "inline-block";
         });
 
-        // --- 4. PERSISTENCIA (GUARDAR EN DAL) ---
+        // --- 4. PERSISTENCIA (GUARDAR EN DAL) OJO AL CAMBIAR POR LA BASE DE DATOS REAL---
         btnGuardar.addEventListener("click", function() {
             const formulario = document.getElementById("formCliente") || document.getElementById("formEdicion");
             if (!formulario.checkValidity()) {
                 formulario.reportValidity();
                 return;
             }
-            
+
             const id = parseInt(document.getElementById("txtIdCliente").value);
             const cliente = {
                 IdCliente: id,
@@ -163,11 +201,11 @@
                 Nombre: document.getElementById("txtNombre").value,
                 Apellido: document.getElementById("txtApellido").value,
                 Telefono: document.getElementById("txtTelefono").value,
+                Email: document.getElementById("txtEmail").value, 
                 ObraSocial: document.getElementById("cboObraSocial").value,
-                Activo: true
+                Activo: document.getElementById("chkActivo").checked 
             };
 
-            // Definimos la ruta según si el ID es nuevo (0) o existente
             const url = id === 0 ? '/Cliente/Crear' : '/Cliente/Modificar';
 
             fetch(url, {
@@ -179,12 +217,11 @@
                 .then(res => {
                     if (res.success) {
                         alert("✅ Operación realizada con éxito.");
-                        location.reload(); 
+                        location.reload();
                     } else {
                         alert("❌ Error: No se pudo completar la operación.");
                     }
                 });
         });
-
     </script>
 }

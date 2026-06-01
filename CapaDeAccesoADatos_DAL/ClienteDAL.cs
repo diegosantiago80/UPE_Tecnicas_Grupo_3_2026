@@ -1,52 +1,119 @@
-﻿using CapaDeEntidades;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Data;
+using System.Data.SqlClient;
+using CapaDeEntidades;
 
 namespace CapaDeAccesoADatos_DAL
 {
     public class ClienteDAL
     {
-        // Lista estática: Es repaso provisorio de la base de datos
-        private static List<Cliente> _clientesEnMemoria = new List<Cliente>
-        {
-            new Cliente(1, "Juan", "Pérez", "11111111", "1144332211", "juan@email.com", "PAMI", true),
-            new Cliente(2, "María", "García", "22222222", "1155667788", "maria@email.com", "Particular", true)
-        };
+        // CADENA PROVISORIA
+        //private readonly string cadenaConexion = "Data Source=.;Initial Catalog=FarmaciaDB;Integrated Security=True";
 
-      
+
         public Cliente? BuscarPorDni(string dni)
         {
             if (string.IsNullOrWhiteSpace(dni)) return null;
-            return _clientesEnMemoria.FirstOrDefault(c => c.Dni.Trim() == dni.Trim());
+
+            using (SqlConnection conexion = new SqlConnection(cadenaConexion))
+            {
+                SqlCommand cmd = new SqlCommand("SP_BuscarClientePorDni", conexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Dni", dni);
+
+                try
+                {
+                    conexion.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            return new Cliente
+                            {
+                                IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                                Nombre = dr["Nombre"].ToString() ?? string.Empty,
+                                Apellido = dr["Apellido"].ToString() ?? string.Empty,
+                                Dni = dr["Dni"].ToString() ?? string.Empty,
+                                Telefono = dr["Telefono"].ToString() ?? string.Empty,
+                                Email = dr["Email"].ToString() ?? string.Empty,
+                                ObraSocial = dr["ObraSocial"].ToString() ?? string.Empty,
+                                Activo = Convert.ToBoolean(dr["Activo"]),
+                                EsEmpleado = Convert.ToBoolean(dr["EsEmpleado"]) 
+                            };
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Error en la DAL al buscar cliente: " + ex.Message);
+                }
+            }
+            return null;
         }
 
-        public bool Actualizar(Cliente clienteModificado)
-        {
-            var cliente = _clientesEnMemoria.FirstOrDefault(c => c.IdCliente == clienteModificado.IdCliente);
-            if (cliente != null)
-            {
-                cliente.Dni = clienteModificado.Dni;
-                cliente.Nombre = clienteModificado.Nombre;
-                cliente.Apellido = clienteModificado.Apellido;
-                cliente.Telefono = clienteModificado.Telefono;
-                cliente.Email = clienteModificado.Email;
-                cliente.ObraSocial = clienteModificado.ObraSocial;
-                return true;
-            }
-            return false;
-        }
 
         public bool Crear(Cliente nuevoCliente)
         {
-            try
+            using (SqlConnection conexion = new SqlConnection(cadenaConexion))
             {
-                nuevoCliente.IdCliente = _clientesEnMemoria.Max(c => c.IdCliente) + 1;
-                _clientesEnMemoria.Add(nuevoCliente);
-                return true;
+                SqlCommand cmd = new SqlCommand("SP_CrearCliente", conexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@Nombre", nuevoCliente.Nombre);
+                cmd.Parameters.AddWithValue("@Apellido", nuevoCliente.Apellido);
+                cmd.Parameters.AddWithValue("@Dni", nuevoCliente.Dni);
+                cmd.Parameters.AddWithValue("@Telefono", nuevoCliente.Telefono);
+                cmd.Parameters.AddWithValue("@Email", nuevoCliente.Email);
+                cmd.Parameters.AddWithValue("@ObraSocial", nuevoCliente.ObraSocial);
+                cmd.Parameters.AddWithValue("@Activo", nuevoCliente.Activo);
+
+                try
+                {
+                    conexion.Open();
+                    var idGenerado = cmd.ExecuteScalar();
+
+                    if (idGenerado != null)
+                    {
+                        nuevoCliente.IdCliente = Convert.ToInt32(idGenerado);
+                        return true;
+                    }
+                    return false;
+                }
+                catch
+                {
+                    return false;
+                }
             }
-            catch
+        }
+
+        
+        public bool Actualizar(Cliente clienteModificado)
+        {
+            using (SqlConnection conexion = new SqlConnection(cadenaConexion))
             {
-                return false;
+                SqlCommand cmd = new SqlCommand("SP_ModificarCliente", conexion);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@IdCliente", clienteModificado.IdCliente);
+                cmd.Parameters.AddWithValue("@Nombre", clienteModificado.nombre);
+                cmd.Parameters.AddWithValue("@Apellido", clienteModificado.Apellido);
+                cmd.Parameters.AddWithValue("@Dni", clienteModificado.Dni);
+                cmd.Parameters.AddWithValue("@Telefono", clienteModificado.Telefono);
+                cmd.Parameters.AddWithValue("@Email", clienteModificado.Email);
+                cmd.Parameters.AddWithValue("@ObraSocial", clienteModificado.ObraSocial);
+                cmd.Parameters.AddWithValue("@Activo", clienteModificado.Activo);
+                cmd.Parameters.AddWithValue("@EsEmpleado", clienteModificado.EsEmpleado); // Mapeado directo
+
+                try
+                {
+                    conexion.Open();
+                    int filasAfectadas = Convert.ToInt32(cmd.ExecuteScalar());
+                    return filasAfectadas > 0;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
     }
