@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
+using Microsoft.Data.SqlClient;
 using System.Linq;
 using CapaDeEntidades;
+using CapaDeAccesoADatos_DAL;
 
 namespace CapaDeLogicaDeNegocio_BLL
 {
@@ -10,25 +13,17 @@ namespace CapaDeLogicaDeNegocio_BLL
     public class AuthService
     {
         private static readonly AuthService _instance = new AuthService();
-
-        private readonly List<UsuarioDatos> _usuarios;
         private readonly Dictionary<int, PerfilComposite> _perfilesPorId;
 
         private AuthService()
         {
-            _usuarios = new List<UsuarioDatos>();
             _perfilesPorId = new Dictionary<int, PerfilComposite>();
             ConfigurarPerfiles();
-            ConfigurarUsuarios();
         }
 
-        public static AuthService Instance
-        {
-            get { return _instance; }
-        }
+        public static AuthService Instance => _instance;
 
-        // los nombres de permiso van en espejo con los cu de la documentacion del grupo
-        // cada rol arranca con minimo privilegio, en la proxima entrega esto tiene que salir de la bd
+        // configuracion de permisos y perfiles segun la documentacion del proyecto
         private void ConfigurarPerfiles()
         {
             var gestionarUsuarios = new PermisoSimple { Nombre = "GestionarUsuarios" };
@@ -67,44 +62,74 @@ namespace CapaDeLogicaDeNegocio_BLL
             _perfilesPorId[4] = gerente;
         }
 
-        private void ConfigurarUsuarios()
+        // valida credenciales contra la base de datos usando el sp de kiara
+        public UsuarioDatos? ValidarUsuario(string? username, string? password)
         {
-            // NombreReal aparece en el saludo del home, NombreRol en el badge del menu
-            _usuarios.Add(new UsuarioDatos { User = "admin", Pass = "123", NombreReal = "Kiara Poloni", NombreRol = "Administrador", IdPerfil = 1 });
-            _usuarios.Add(new UsuarioDatos { User = "vendedor", Pass = "123", NombreReal = "Victoria Mac Kenzie", NombreRol = "Vendedor", IdPerfil = 2 });
-            _usuarios.Add(new UsuarioDatos { User = "deposito", Pass = "123", NombreReal = "Diego Santiago", NombreRol = "Depósito", IdPerfil = 3 });
-            _usuarios.Add(new UsuarioDatos { User = "gerente", Pass = "123", NombreReal = "Gerente Farmacia UPE", NombreRol = "Gerente", IdPerfil = 4 });
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) return null;
+
+            using (SqlConnection con = new SqlConnection(Conexion.CadenaDeConexion))
+            {
+                using (SqlCommand cmd = new SqlCommand("SP_ValidarUsuario", con))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Usuario", username!.Trim());
+                    cmd.Parameters.AddWithValue("@Contrasena", password!.Trim());
+
+                    try
+                    {
+                        con.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            if (dr.Read())
+                            {
+                                // verificacion del estado activo del usuario
+                                if (Convert.ToBoolean(dr["Activo"]))
+                                {
+                                    int idUsuario = Convert.ToInt32(dr["IdUsuario"]);
+                                    int idPerfil = Convert.ToInt32(dr["IdPerfil"]);
+                                    string nombre = dr["Nombre"]?.ToString() ?? string.Empty;
+                                    string apellido = dr["Apellido"]?.ToString() ?? string.Empty;
+                                    string user = dr["NombreUsuario"]?.ToString() ?? string.Empty;
+                                    string rol = ObtenerPerfilPorId(idPerfil)?.Nombre ?? "Desconocido";
+
+                                    // retorno del objeto con informacion del usuario autenticado
+                                    return new UsuarioDatos
+                                    {
+                                        IdUsuario  = idUsuario,
+                                        User       = user,
+                                        Pass       = string.Empty, // por seguridad limpieza de credenciales en memoria
+                                        NombreReal = $"{nombre} {apellido}".Trim(),
+                                        NombreRol  = rol,
+                                        IdPerfil   = idPerfil
+                                    };
+                                }
+                            }
+                        }
+                    }
+                    catch { return null; }
+                }
+            }
+            return null;
         }
 
-        public UsuarioDatos ValidarUsuario(string username, string password)
-        {
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) return null;
+        // metodo auxiliar para recuperar el perfil segun id
+        public PerfilComposite? ObtenerPerfilPorId(int idPerfil) => _perfilesPorId.GetValueOrDefault(idPerfil);
 
-            return _usuarios.FirstOrDefault(u =>
-                u.User.Trim().Equals(username.Trim(), StringComparison.OrdinalIgnoreCase) &&
-                u.Pass.Trim() == password.Trim());
-        }
-
-        public PerfilComposite ObtenerPerfilPorId(int idPerfil)
-        {
-            return _perfilesPorId.TryGetValue(idPerfil, out var perfil) ? perfil : null;
-        }
-
-        // atajo para que la vista pregunte permisos sin tener que armar el perfil a mano
+        // verifica la existencia de permisos en el perfil asignado
         public bool PerfilTienePermiso(int? idPerfil, string nombrePermiso)
         {
-            if (idPerfil == null) return false;
-            var perfil = ObtenerPerfilPorId(idPerfil.Value);
-            return perfil != null && perfil.TienePermiso(nombrePermiso);
+            return idPerfil.HasValue && ObtenerPerfilPorId(idPerfil.Value)?.TienePermiso(nombrePermiso) == true;
         }
     }
 
+    // estructura de datos para la transferencia de informacion del usuario
     public class UsuarioDatos
     {
-        public string User { get; set; }
-        public string Pass { get; set; }
-        public string NombreReal { get; set; }
-        public string NombreRol { get; set; }
+        public int IdUsuario { get; set; }
+        public string User { get; set; } = string.Empty;
+        public string Pass { get; set; } = string.Empty;
+        public string NombreReal { get; set; } = string.Empty;
+        public string NombreRol { get; set; } = string.Empty;
         public int IdPerfil { get; set; }
     }
 }
