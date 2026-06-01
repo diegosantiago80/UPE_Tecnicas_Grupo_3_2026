@@ -23,7 +23,6 @@ namespace CapaDeLogicaDeNegocio_BLL
 
         public static AuthService Instance => _instance;
 
-        // configuracion de permisos y perfiles segun la documentacion del proyecto
         private void ConfigurarPerfiles()
         {
             var gestionarUsuarios = new PermisoSimple { Nombre = "GestionarUsuarios" };
@@ -36,19 +35,16 @@ namespace CapaDeLogicaDeNegocio_BLL
             var gestionarLaboratorios = new PermisoSimple { Nombre = "GestionarLaboratorios" };
             var verReportes = new PermisoSimple { Nombre = "VerReportes" };
 
-            // admin: solo modulo de seguridad (abm usuarios + perfiles)
             var admin = new PerfilComposite { Nombre = "Administrador" };
             admin.Agregar(gestionarUsuarios);
             admin.Agregar(configurarPerfiles);
             _perfilesPorId[1] = admin;
 
-            // vendedor: ventas + clientes
             var vendedor = new PerfilComposite { Nombre = "Vendedor" };
             vendedor.Agregar(registrarVenta);
             vendedor.Agregar(gestionarClientes);
             _perfilesPorId[2] = vendedor;
 
-            // encargado de deposito: stock + compras + abm de medicamentos y laboratorios
             var encargado = new PerfilComposite { Nombre = "Encargado" };
             encargado.Agregar(controlStock);
             encargado.Agregar(registrarCompra);
@@ -56,7 +52,6 @@ namespace CapaDeLogicaDeNegocio_BLL
             encargado.Agregar(gestionarLaboratorios);
             _perfilesPorId[3] = encargado;
 
-            // gerente: solo reportes
             var gerente = new PerfilComposite { Nombre = "Gerente" };
             gerente.Agregar(verReportes);
             _perfilesPorId[4] = gerente;
@@ -82,7 +77,6 @@ namespace CapaDeLogicaDeNegocio_BLL
                         {
                             if (dr.Read())
                             {
-                                // verificacion del estado activo del usuario
                                 if (Convert.ToBoolean(dr["Activo"]))
                                 {
                                     int idUsuario = Convert.ToInt32(dr["IdUsuario"]);
@@ -92,15 +86,14 @@ namespace CapaDeLogicaDeNegocio_BLL
                                     string user = dr["NombreUsuario"]?.ToString() ?? string.Empty;
                                     string rol = ObtenerPerfilPorId(idPerfil)?.Nombre ?? "Desconocido";
 
-                                    // retorno del objeto con informacion del usuario autenticado
                                     return new UsuarioDatos
                                     {
-                                        IdUsuario  = idUsuario,
-                                        User       = user,
-                                        Pass       = string.Empty, // por seguridad limpieza de credenciales en memoria
+                                        IdUsuario = idUsuario,
+                                        User = user,
+                                        Pass = string.Empty,
                                         NombreReal = $"{nombre} {apellido}".Trim(),
-                                        NombreRol  = rol,
-                                        IdPerfil   = idPerfil
+                                        NombreRol = rol,
+                                        IdPerfil = idPerfil
                                     };
                                 }
                             }
@@ -112,17 +105,14 @@ namespace CapaDeLogicaDeNegocio_BLL
             return null;
         }
 
-        // metodo auxiliar para recuperar el perfil segun id
         public PerfilComposite? ObtenerPerfilPorId(int idPerfil) => _perfilesPorId.GetValueOrDefault(idPerfil);
 
-        // verifica la existencia de permisos en el perfil asignado
         public bool PerfilTienePermiso(int? idPerfil, string nombrePermiso)
         {
             return idPerfil.HasValue && ObtenerPerfilPorId(idPerfil.Value)?.TienePermiso(nombrePermiso) == true;
         }
     }
 
-    // estructura de datos para la transferencia de informacion del usuario
     public class UsuarioDatos
     {
         public int IdUsuario { get; set; }

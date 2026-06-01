@@ -28,7 +28,6 @@ app.UseSession();
 
 app.UseAuthorization();
 
-// los 404 (rutas todavia sin implementar) van a la pantalla "en construccion"
 app.UseStatusCodePagesWithReExecute("/Home/EnConstruccion");
 
 app.MapStaticAssets();
