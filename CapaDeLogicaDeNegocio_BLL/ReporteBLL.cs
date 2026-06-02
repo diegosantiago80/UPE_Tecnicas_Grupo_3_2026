@@ -40,7 +40,6 @@ namespace CapaDeLogicaDeNegocio_BLL
                         break;
                 }
             }
-
             return ventas;
         }
 
@@ -72,7 +71,6 @@ namespace CapaDeLogicaDeNegocio_BLL
                 filtradas = filtradas.Where(v => v.Fecha.Date <= fechaFin.Value.Date).ToList();
             }
 
-            // Devolvemos la lista procesada al Controlador
             return filtradas;
         }
     }

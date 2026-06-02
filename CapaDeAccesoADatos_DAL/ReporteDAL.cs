@@ -1,8 +1,6 @@
 ﻿using CapaDeEntidades;
 using System.Collections.Generic;
 using System.Linq;
-using System;
-
 
 namespace CapaDeAccesoADatos_DAL
 {
@@ -19,7 +17,6 @@ namespace CapaDeAccesoADatos_DAL
 
             // Hemos movido los datos falsos aquí, simulando que son los registros leídos de la tabla de SQL
 
-            //valida
             return new List<Reporte>
             {
                 // Un mes con altibajos para Paracetamol
