@@ -3,91 +3,104 @@
 @using System.Linq
 @using CapaDeEntidades
 
+@model IEnumerable<Reporte>
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Análisis de Medicamento";
 
-    // Intentamos leer los valores enviados por la URL (si los hay)
-    // Usamos string vacío como default para evitar errores nulos
+    // Intentamos leer los valores enviados por la URL o el formulario
     string medicamentoBuscado = "";
     string fechaInicioStr = "";
     string fechaFinStr = "";
 
-    // Verificamos si la petición tiene datos en el QueryString
     if (Context.Request.Query.ContainsKey("medicamento"))
     {
         medicamentoBuscado = Context.Request.Query["medicamento"].ToString();
     }
+    else if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey("medicamento"))
+    {
+        medicamentoBuscado = Context.Request.Form["medicamento"].ToString();
+    }
+
     if (Context.Request.Query.ContainsKey("fechaInicio"))
     {
         fechaInicioStr = Context.Request.Query["fechaInicio"].ToString();
     }
+    else if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey("fechaInicio"))
+    {
+        fechaInicioStr = Context.Request.Form["fechaInicio"].ToString();
+    }
+
     if (Context.Request.Query.ContainsKey("fechaFin"))
     {
         fechaFinStr = Context.Request.Query["fechaFin"].ToString();
+    }
+    else if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey("fechaFin"))
+    {
+        fechaFinStr = Context.Request.Form["fechaFin"].ToString();
     }
 
     // Solo mostramos las fechas y la tabla si el usuario ya buscó un medicamento
     bool mostrarAreaAvanzada = !string.IsNullOrEmpty(medicamentoBuscado);
 
-    // Declaramos las variables globales para la tabla aquí arriba para evitar problemas de alcance (scope)
     var ventasOrdenadas = new List<Reporte>();
     int totalCantidades = 0;
     decimal montoTotal = 0;
 
-    // Si hay datos en el modelo, los pasamos a la lista fuerte y los ordenamos sin usar LINQ
     if (Model != null)
     {
         foreach (var item in Model)
         {
             ventasOrdenadas.Add(item);
         }
-        // Usamos el Sort clásico para evitar errores dinámicos de ASP.NET
+        // Ordenamos por fecha para que el análisis evolutivo tenga coherencia cronológica
         ventasOrdenadas.Sort((a, b) => a.Fecha.CompareTo(b.Fecha));
     }
 }
 
-<!-- CONTENEDOR PRINCIPAL -->
 <div class="container mt-4">
+
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @ViewBag.Error
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     <div class="card shadow-sm border-0">
 
-        <!-- CABECERA DE BÚSQUEDA -->
         <div class="card-header bg-white py-3">
             <h1 class="h4 mb-4 text-primary">Análisis de Rendimiento por Medicamento</h1>
 
-            <form method="get">
-                <!-- Usamos row clásico para máxima compatibilidad con cualquier versión de Bootstrap -->
+            <form method="post" action="@Url.Action("Proyeccion", "Reporte")">
                 <div class="row align-items-end">
 
-                    <!-- PASO 1: Campo Medicamento -->
                     <div class="col-md-4 mb-3 mb-md-0">
-                        <label class="fw-bold font-weight-bold text-muted small text-uppercase">Medicamento a analizar</label>
+                        <label class="fw-bold text-muted small text-uppercase">Medicamento a analizar</label>
                         <input type="text" name="medicamento" class="form-control" placeholder="Ej. Paracetamol" value="@medicamentoBuscado" required />
                     </div>
 
-                    <!-- PASO 2: Área de fechas (Se habilita posterior a la primera búsqueda) -->
                     @if (mostrarAreaAvanzada)
                     {
                         <div class="col-md-3 mb-3 mb-md-0">
-                            <label class="fw-bold font-weight-bold text-muted small text-uppercase">Fecha Inicio</label>
+                            <label class="fw-bold text-muted small text-uppercase">Fecha Inicio</label>
                             <input type="date" name="fechaInicio" class="form-control" value="@fechaInicioStr" />
                         </div>
                         <div class="col-md-3 mb-3 mb-md-0">
-                            <label class="fw-bold font-weight-bold text-muted small text-uppercase">Fecha Fin</label>
+                            <label class="fw-bold text-muted small text-uppercase">Fecha Fin</label>
                             <input type="date" name="fechaFin" class="form-control" value="@fechaFinStr" />
                         </div>
                     }
 
                     <div class="col-md-2 mt-3 mt-md-0">
-                        <button type="submit" class="btn btn-primary w-100 btn-block">Buscar</button>
+                        <button type="submit" class="btn btn-primary w-100">Analizar</button>
                     </div>
                 </div>
             </form>
         </div>
 
-        <!-- TABLA DE RESULTADOS COMPARATIVOS -->
         @if (mostrarAreaAvanzada)
         {
             <div class="card-body p-0">
@@ -96,7 +109,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>Fecha de Venta</th>
-                                <th class="text-center">Cantidad</th>
+                                <th class="text-center">Cantidad Vendida</th>
                                 <th class="text-end">Monto Actual</th>
                                 <th class="text-end">Monto Anterior</th>
                                 <th class="text-center">Crecimiento / Caída</th>
@@ -111,13 +124,11 @@
                                 {
                                     existenDatos = true;
 
-                                    // Generamos una cantidad "hardcodeada" simulada basada en el monto para evitar errores de compilación
-                                    // si tu clase Reporte no tiene la propiedad Cantidad.
-                                    int cantidadSimulada = (int)(venta.Monto / 50) + 1;
+                                    // Usamos la propiedad real de la entidad 'UnidadesVendidas' que unificamos con tu BLL
+                                    int cantidadReal = venta.UnidadesVendidas > 0 ? venta.UnidadesVendidas : 1;
 
-                                    totalCantidades += cantidadSimulada; // Acumulamos la cantidad simulada
-                                    montoTotal += venta.Monto;         // Acumulamos el monto
-
+                                    totalCantidades += cantidadReal;
+                                    montoTotal += venta.Monto;
                                     decimal porcentaje = 0;
                                     string colorClase = "text-muted";
                                     string signo = "";
@@ -129,28 +140,28 @@
 
                                         if (porcentaje > 0)
                                         {
-                                            colorClase = "text-success"; // Verde para crecimiento
+                                            colorClase = "text-success";
                                             signo = "+";
                                         }
                                         else if (porcentaje < 0)
                                         {
-                                            colorClase = "text-danger"; // Rojo para caída
+                                            colorClase = "text-danger";
                                         }
                                     }
 
                                     <tr>
                                         <td>@venta.Fecha.ToString("dd/MM/yyyy")</td>
-                                        <td class="text-center">@cantidadSimulada</td>
+                                        <td class="text-center">@cantidadReal</td>
                                         <td class="text-end fw-bold">@venta.Monto.ToString("C")</td>
                                         <td class="text-end text-muted">
                                             @(montoAnterior == 0 ? "-" : montoAnterior.ToString("C"))
                                         </td>
-                                        <td class="text-center fw-bold font-weight-bold @colorClase">
+                                        <td class="text-center fw-bold @colorClase">
                                             @(montoAnterior == 0 ? "Sin historial" : $"{signo}{porcentaje.ToString("0.00")}%")
                                         </td>
                                     </tr>
 
-                                    // Guardamos el monto actual para que sea el "anterior" en la próxima vuelta del bucle
+                                    // Guardamos el monto actual para el histórico de la siguiente fila
                                     montoAnterior = venta.Monto;
                                 }
 
@@ -165,7 +176,6 @@
                             }
                         </tbody>
 
-                        @* Agregamos el pie de tabla revisando el contador de la lista (sin usar .Any()) *@
                         @if (ventasOrdenadas.Count > 0)
                         {
                             <tfoot class="table-light">
@@ -183,12 +193,10 @@
         }
         else
         {
-            <!-- Estado vacío antes de buscar -->
             <div class="card-body text-center py-5">
+                <i class="bi bi-sliders2 fs-1 text-muted d-block mb-3"></i>
                 <p class="text-muted mb-0">Por favor, ingresa el nombre de un medicamento para comenzar el análisis.</p>
             </div>
         }
     </div>
 </div>
-
-

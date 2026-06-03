@@ -1,122 +1,132 @@
 ﻿using CapaDeEntidades;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Data;
 
 namespace CapaDeAccesoADatos_DAL
 {
     // ====================================================================================
-    // PATRÓN DE DISEÑO: PROXY (Intermediario o Sustituto)
+    // CONTRATO: Exigido por la BLL
     // ====================================================================================
-
-    /// <summary>
-    /// 1. INTERFAZ DEL SUJETO (ISubject)
-    /// </summary>
     public interface IReporteDAL
     {
         List<Reporte> ObtenerTodasLasVentas();
+        List<Reporte> ObtenerReporteVentas(string nombreUsuario, string periodo, DateTime? fecha);
+        Reporte ObtenerEstadisticasMedicamento(string nombreMedicamento, DateTime fechaInicio, DateTime fechaFin);
     }
 
-
-    /// <summary>
-    /// 2. OBJETO REAL (RealSubject) con Simulación de Base de Datos
-    /// </summary>
+    // ====================================================================================
+    // SUJETO REAL: Va a la base de datos real con ADO.NET (Conexión Centralizada)
+    // ====================================================================================
     public class ReporteDALReal : IReporteDAL
     {
+        // 1. Método para la grilla de Reporte de Ventas (VerReporte)
+        public List<Reporte> ObtenerReporteVentas(string nombreUsuario, string periodo, DateTime? fecha)
+        {
+            List<Reporte> lista = new List<Reporte>();
+
+            using (SqlConnection conn = new SqlConnection(Conexion.CadenaDeConexion))
+            {
+                using (SqlCommand cmd = new SqlCommand("dbo.sp_ReporteVentas", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@NombreUsuario", nombreUsuario);
+                    cmd.Parameters.AddWithValue("@Periodo", string.IsNullOrEmpty(periodo) ? (object)DBNull.Value : periodo);
+                    cmd.Parameters.AddWithValue("@Fecha", fecha.HasValue ? (object)fecha.Value : DBNull.Value);
+
+                    conn.Open();
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            // Instanciamos el objeto vacío con tu constructor por defecto
+                            Reporte r = new Reporte();
+
+                            // Mapeamos directo a tus propiedades públicas
+                            r.IdVenta = Convert.ToInt32(reader["IdVenta"]);
+                            r.NombreVendedor = reader["NombreVendedor"].ToString();
+                            r.Fecha = Convert.ToDateTime(reader["FechaVenta"]);
+                            r.Medicamento = reader["Medicamento"].ToString();
+                            r.Monto = Convert.ToDecimal(reader["Monto"]);
+
+                            lista.Add(r);
+                        }
+                    }
+                }
+            }
+            return lista;
+        }
+
+        // 2. Método para los Badges de las Estadísticas (GenerarEstadistica)
+        public Reporte ObtenerEstadisticasMedicamento(string nombreMedicamento, DateTime fechaInicio, DateTime fechaFin)
+        {
+            Reporte r = null;
+
+            using (SqlConnection conn = new SqlConnection(Conexion.CadenaDeConexion))
+            {
+                using (SqlCommand cmd = new SqlCommand("dbo.sp_EstadisticasMedicamento", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@NombreMedicamento", nombreMedicamento);
+                    cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                    cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
+
+                    conn.Open();
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            r = new Reporte();
+
+                            // Mapeamos usando las propiedades exactas de tu clase Reporte
+                            r.Medicamento = reader["NombreMedicamento"].ToString();
+                            r.UnidadesVendidas = Convert.ToInt32(reader["CantidadUnidadesVendidas"]);
+                            r.PorcentajeVariacion = Convert.ToDecimal(reader["PorcentajeVsMesAnterior"]);
+                            r.StockDisponible = Convert.ToInt32(reader["UnidadesEnStock"]);
+                        }
+                    }
+                }
+            }
+            return r;
+        }
+
+        // Método complementario exigido por la interfaz
         public List<Reporte> ObtenerTodasLasVentas()
         {
-            // Simulamos el costo de ir a la Base de Datos
-            Console.WriteLine("[ReporteDALReal] Ejecutando: Conectando a SQL Server y obteniendo datos reales...");
-
-            // Obtenemos fechas de referencia relativas al día de hoy para que los filtros temporales siempre den resultados
-            DateTime hoy = DateTime.Today;
-            DateTime inicioMesActual = new DateTime(hoy.Year, hoy.Month, 1);
-            DateTime inicioMesAnterior = inicioMesActual.AddMonths(-1);
-
-            return new List<Reporte>
-            {
-                // ==========================================================================
-                // 1. PARACETAMOL: Stock 45, Ventas Mes Actual: 5, Ventas Mes Anterior: 3 (+66% variación)
-                // ==========================================================================
-                new Reporte { NombreVendedor = "Carlos Perez", Fecha = hoy.AddDays(-1), Hora = TimeSpan.Parse("10:30"), Monto = 1200.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-                new Reporte { NombreVendedor = "Ana Gomez", Fecha = hoy.AddDays(-3), Hora = TimeSpan.Parse("14:15"), Monto = 1800.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-                new Reporte { NombreVendedor = "Luis Martinez", Fecha = hoy.AddDays(-5), Hora = TimeSpan.Parse("09:45"), Monto = 900.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-                new Reporte { NombreVendedor = "Carlos Perez", Fecha = inicioMesActual.AddDays(1), Hora = TimeSpan.Parse("16:20"), Monto = 2100.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-                new Reporte { NombreVendedor = "Sofia Castro", Fecha = inicioMesActual.AddDays(3), Hora = TimeSpan.Parse("11:10"), Monto = 1800.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-
-                new Reporte { NombreVendedor = "Ana Gomez", Fecha = inicioMesAnterior.AddDays(5), Hora = TimeSpan.Parse("10:00"), Monto = 1200.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-                new Reporte { NombreVendedor = "Sofia Castro", Fecha = inicioMesAnterior.AddDays(12), Hora = TimeSpan.Parse("11:30"), Monto = 1200.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-                new Reporte { NombreVendedor = "Carlos Perez", Fecha = inicioMesAnterior.AddDays(20), Hora = TimeSpan.Parse("16:45"), Monto = 1200.00m, Medicamento = "Paracetamol", StockDisponible = 45 },
-
-                // ==========================================================================
-                // 2. IBUPROFENO: Stock 8 (Nivel Crítico), Ventas Mes Actual: 2, Ventas Mes Anterior: 4 (-50% variación)
-                // ==========================================================================
-                new Reporte { NombreVendedor = "Juan Diaz", Fecha = hoy.AddDays(-2), Hora = TimeSpan.Parse("12:00"), Monto = 1000.00m, Medicamento = "Ibuprofeno", StockDisponible = 8 },
-                new Reporte { NombreVendedor = "Ana Gomez", Fecha = hoy.AddDays(-4), Hora = TimeSpan.Parse("15:30"), Monto = 2500.00m, Medicamento = "Ibuprofeno", StockDisponible = 8 },
-
-                new Reporte { NombreVendedor = "Carlos Perez", Fecha = inicioMesAnterior.AddDays(4), Hora = TimeSpan.Parse("08:15"), Monto = 1000.00m, Medicamento = "Ibuprofeno", StockDisponible = 8 },
-                new Reporte { NombreVendedor = "Juan Diaz", Fecha = inicioMesAnterior.AddDays(10), Hora = TimeSpan.Parse("11:20"), Monto = 1000.00m, Medicamento = "Ibuprofeno", StockDisponible = 8 },
-                new Reporte { NombreVendedor = "Sofia Castro", Fecha = inicioMesAnterior.AddDays(18), Hora = TimeSpan.Parse("15:45"), Monto = 1000.00m, Medicamento = "Ibuprofeno", StockDisponible = 8 },
-                new Reporte { NombreVendedor = "Ana Gomez", Fecha = inicioMesAnterior.AddDays(25), Hora = TimeSpan.Parse("17:00"), Monto = 1000.00m, Medicamento = "Ibuprofeno", StockDisponible = 8 },             
-
-                // ==========================================================================
-                // 3. AMOXICILINA: Stock 26 (Nivel Bajo), Ventas Mes Actual: 3, Ventas Mes Anterior: 3 (0% variación)
-                // ==========================================================================
-                new Reporte { NombreVendedor = "Carlos Perez", Fecha = hoy.AddDays(-6), Hora = TimeSpan.Parse("10:00"), Monto = 540.00m, Medicamento = "Amoxicilina", StockDisponible = 26 },
-                new Reporte { NombreVendedor = "Ana Gomez", Fecha = hoy.AddDays(-10), Hora = TimeSpan.Parse("14:30"), Monto = 540.00m, Medicamento = "Amoxicilina", StockDisponible = 26 },
-                new Reporte { NombreVendedor = "Sofia Castro", Fecha = inicioMesActual.AddDays(2), Hora = TimeSpan.Parse("11:00"), Monto = 540.00m, Medicamento = "Amoxicilina", StockDisponible = 26 },
-
-                new Reporte { NombreVendedor = "Carlos Perez", Fecha = inicioMesAnterior.AddDays(4), Hora = TimeSpan.Parse("09:15"), Monto = 540.00m, Medicamento = "Amoxicilina", StockDisponible = 26 },
-                new Reporte { NombreVendedor = "Juan Diaz", Fecha = inicioMesAnterior.AddDays(15), Hora = TimeSpan.Parse("15:00"), Monto = 540.00m, Medicamento = "Amoxicilina", StockDisponible = 26 },
-                new Reporte { NombreVendedor = "Sofia Castro", Fecha = inicioMesAnterior.AddDays(22), Hora = TimeSpan.Parse("16:30"), Monto = 540.00m, Medicamento = "Amoxicilina", StockDisponible = 26 },
-
-                // ==========================================================================
-                // 4. LORATADINA: Stock 60 (Suficiente), Ventas Mes Actual: 4, Ventas Mes Anterior: 0 (100% variación)
-                // ==========================================================================
-                new Reporte { NombreVendedor = "Ana Gomez", Fecha = hoy.AddDays(-7), Hora = TimeSpan.Parse("12:15"), Monto = 95.00m, Medicamento = "Loratadina", StockDisponible = 60 },
-                new Reporte { NombreVendedor = "Juan Diaz", Fecha = hoy.AddDays(-11), Hora = TimeSpan.Parse("11:30"), Monto = 95.00m, Medicamento = "Loratadina", StockDisponible = 60 },
-                new Reporte { NombreVendedor = "Carlos Perez", Fecha = inicioMesActual.AddDays(3), Hora = TimeSpan.Parse("15:45"), Monto = 95.00m, Medicamento = "Loratadina", StockDisponible = 60 },
-                new Reporte { NombreVendedor = "Sofia Castro", Fecha = inicioMesActual.AddDays(6), Hora = TimeSpan.Parse("09:00"), Monto = 95.00m, Medicamento = "Loratadina", StockDisponible = 60 }
-            };
+            return new List<Reporte>();
         }
     }
 
-
-    /// <summary>
-    /// 3. EL PROXY (Proxy)
-    /// </summary>
+    // ====================================================================================
+    // PROXY: Controla accesos, maneja caché y está ENCAPSULADO de forma privada
+    // ====================================================================================
     public class ReporteDALProxy : IReporteDAL
     {
-        private ReporteDALReal _reporteDALReal;
-        private List<Reporte> _cacheVentas;
+        private static List<Reporte> _cacheVentas = null;
+        private readonly IReporteDAL _objetoReal = new ReporteDALReal(); // Instancia PRIVADA del objeto real
+
+        // El Proxy implementa OBLIGATORIAMENTE todos los métodos de la interfaz para que no dé error
+        public List<Reporte> ObtenerReporteVentas(string nombreUsuario, string periodo, DateTime? fecha)
+        {
+            // Delegamos de forma segura sin recursión infinita
+            return _objetoReal.ObtenerReporteVentas(nombreUsuario, periodo, fecha);
+        }
+
+        public Reporte ObtenerEstadisticasMedicamento(string nombreMedicamento, DateTime fechaInicio, DateTime fechaFin)
+        {
+            return _objetoReal.ObtenerEstadisticasMedicamento(nombreMedicamento, fechaInicio, fechaFin);
+        }
 
         public List<Reporte> ObtenerTodasLasVentas()
         {
-            Console.WriteLine($"[Proxy] Solicitud de datos interceptada a las {DateTime.Now}");
-
             if (_cacheVentas == null)
             {
-                Console.WriteLine("[Proxy] El caché está vacío. Delegando la llamada a la base de datos real...");
-
-                if (_reporteDALReal == null)
-                {
-                    _reporteDALReal = new ReporteDALReal();
-                }
-
-                _cacheVentas = _reporteDALReal.ObtenerTodasLasVentas();
+                _cacheVentas = _objetoReal.ObtenerTodasLasVentas();
             }
-            else
-            {
-                Console.WriteLine("[Proxy] ¡Ahorro de recursos! Devolviendo los datos directamente desde el caché en memoria.");
-            }
-
             return _cacheVentas;
-        }
-
-        public void RefrescarCache()
-        {
-            Console.WriteLine("[Proxy] Limpiando la caché de ventas.");
-            _cacheVentas = null;
         }
     }
 }

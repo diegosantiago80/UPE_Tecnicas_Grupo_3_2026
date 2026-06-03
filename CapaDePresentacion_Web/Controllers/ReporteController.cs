@@ -2,6 +2,7 @@
 using CapaDeLogicaDeNegocio_BLL;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 
 namespace CapaDePresentacion_Web.Controllers
 {
@@ -34,63 +35,59 @@ namespace CapaDePresentacion_Web.Controllers
         // URL para acceder a este método en tu navegador: /Reporte/VerReporte
         public IActionResult VerReporte(string periodo, DateTime? fechaFiltro, string buscarVendedor)
         {
-            //instanciamos el servicio bll
-            ReporteBLL_TemplateMethod objetoBll = new ReporteBLL_TemplateMethod();
+            // Evitamos posibles nulos en la búsqueda de texto
+            buscarVendedor = buscarVendedor ?? string.Empty;
+            periodo = periodo ?? string.Empty;
 
-            //Evitamos posibles nulo en la busqueda de texto
-            buscarVendedor = buscarVendedor ?? "";
-            periodo = periodo ?? "";
-
-            // PASO 1: Recibimos los parámetros provenientes de la URL o formulario (ej. ?periodo=diaria)
+            // PASO 1: Recibimos los parámetros provenientes de la URL o formulario
 
             // PASO 2: Le delegamos el trabajo a la capa de Negocio (BLL).
-            // Es la BLL la que se encarga de aplicar los filtros usando nuestro Template Method.
-            var ventas = _reportesBLL.ObtenerVentasFiltradas(periodo, fechaFiltro,buscarVendedor);
+            // Usamos la instancia global de la clase.
+            var ventas = _reportesBLL.ObtenerVentasFiltradas(periodo, fechaFiltro, buscarVendedor);
 
             // PASO 3: Devolvemos la interfaz gráfica (Vista) enviándole la lista de ventas finales.
-            return View(ventas);
+            return View(ventas ?? new List<Reporte>());
         }
 
         // URL: /Reporte/GenerarEstadistica
         [HttpGet]
-        // Acción para cargar la vista GenerarEstadistica.cshtml
         public ActionResult GenerarEstadistica(string buscarMedicamento)
         {
-            // Instanciamos el servicio BLL
-            ReporteBLL_TemplateMethod objetoBll = new ReporteBLL_TemplateMethod();
             // Evitamos posibles nulos en la cadena de búsqueda
-            buscarMedicamento = buscarMedicamento ?? "";
-            // Obtenemos los reportes procesados por el Template Method
-            List<Reporte> lista = objetoBll.ObtenerEstadisticasMedicamento(buscarMedicamento);
+            buscarMedicamento = buscarMedicamento ?? string.Empty;
+
+            // Obtenemos los reportes procesados por el Template Method usando el atributo global
+            List<Reporte> lista = _reportesBLL.ObtenerEstadisticasMedicamento(buscarMedicamento);
+
             // Devolverá automáticamente la vista "GenerarEstadistica.cshtml"
-            return View(lista);
+            return View(lista ?? new List<Reporte>());
         }
 
-        // URL: /Reporte/Proyeccion
+        // URL: /Reporte/Proyeccion (Carga inicial de la pantalla por GET)
         [HttpGet]
+        public IActionResult Proyeccion()
+        {
+            // Carga la pantalla con una lista vacía hasta que el Gerente presione "Filtrar"
+            return View(new List<Reporte>());
+        }
+
+        // URL: /Reporte/Proyeccion (Procesa el formulario cuando se presionan los filtros por POST)
+        [HttpPost]
         public IActionResult Proyeccion(string medicamento, DateTime? fechaInicio, DateTime? fechaFin)
         {
-            // Reutilizamos la BLL para traer los datos filtrados para la proyección
-            var ventasProyectadas = _reportesBLL.FiltrarVentasComparativa(medicamento, fechaInicio, fechaFin);
-            // Devolvemos la vista de proyección enviándole los datos encontrados
-            return View("Proyeccion", ventasProyectadas);
-        }
+            medicamento = medicamento ?? string.Empty;
 
-         // La ruta específica para acceder a esta página cambia por el atributo: /Comparativa/Medicamentos
-         [HttpGet("Comparativa/Medicamentos")]
-        public IActionResult Medicamentos(string medicamento, DateTime? fechaInicio, DateTime? fechaFin)
-        {
             // PASO 1: Recibimos los datos de búsqueda.
 
             // PASO 2: Le delegamos TODO el trabajo a la BLL. 
             // Fíjate que el controlador está "limpio". No hay condicionales lógicos ("Ifs"), 
             // no hay filtros directos a listas ("Where"). Todo está centralizado en el Patrón
             // Template Method que diseñamos en la capa inferior.
-            var ventasFiltradas = _reportesBLL.FiltrarVentasComparativa(medicamento, fechaInicio, fechaFin);
+            var ventasProyectadas = _reportesBLL.FiltrarVentasComparativa(medicamento, fechaInicio, fechaFin);
 
-            // PASO 3: Devolvemos la vista visual de la comparativa, inyectándole 
-            // los datos que pasaron por el Template Method y el Proxy de Caché.
-            return View("ComparativaMedicamentos", ventasFiltradas ?? new List<Reporte>());
+            // PASO 3: Devolvemos la vista visual de la proyección ("Proyeccion.cshtml"), 
+            // inyectándole los datos que pasaron por el Template Method y el Proxy de Caché.
+            return View("Proyeccion", ventasProyectadas ?? new List<Reporte>());
         }
     }
 }
