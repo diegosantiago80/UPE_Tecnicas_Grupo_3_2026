@@ -1,21 +1,17 @@
 ﻿using System;
 using System.Data;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using CapaDeEntidades;
 
 namespace CapaDeAccesoADatos_DAL
 {
     public class ClienteDAL
     {
-        // CADENA PROVISORIA
-        //private readonly string cadenaConexion = "Data Source=.;Initial Catalog=FarmaciaDB;Integrated Security=True";
-
-
         public Cliente? BuscarPorDni(string dni)
         {
             if (string.IsNullOrWhiteSpace(dni)) return null;
 
-            using (SqlConnection conexion = new SqlConnection(cadenaConexion))
+            using (SqlConnection conexion = new SqlConnection(Conexion.CadenaDeConexion))
             {
                 SqlCommand cmd = new SqlCommand("SP_BuscarClientePorDni", conexion);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -25,6 +21,7 @@ namespace CapaDeAccesoADatos_DAL
                 {
                     conexion.Open();
                     using (SqlDataReader dr = cmd.ExecuteReader())
+
                     {
                         if (dr.Read())
                         {
