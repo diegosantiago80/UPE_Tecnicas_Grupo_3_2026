@@ -7,11 +7,46 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>@ViewData["Title"]</h1>
-        <div>
+        <div class="d-flex gap-2">
             <a asp-action="Index" asp-route-soloCriticos="false" class="btn btn-outline-primary">Mostrar Todos</a>
             <a asp-action="Index" asp-route-soloCriticos="true" class="btn btn-outline-danger">Ver Críticos</a>
+            <a asp-action="Gestionar" class="btn btn-primary">+ Nuevo Medicamento</a>
         </div>
     </div>
+
+    @if (TempData["Exito"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Exito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* patron observer: muestra las alertas generadas al consultar stock critico *@
+    @{
+        var alertas = ViewBag.AlertasStock as List<string>;
+    }
+    @if (alertas != null && alertas.Count > 0)
+    {
+        <div class="alert alert-warning alert-dismissible fade show">
+            <strong>Notificaciones de stock critico (Observer):</strong>
+            <ul class="mb-0 mt-1">
+                @foreach (var alerta in alertas)
+                {
+                    <li>@alerta</li>
+                }
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
     <table class="table table-hover shadow-sm">
         <thead class="table-dark">
@@ -23,6 +58,7 @@
                 <th>Stock Actual</th>
                 <th>Stock Mínimo</th>
                 <th>Estado</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -30,7 +66,7 @@
             {
                 // las filas con stock critico van resaltadas en rojo
                 string claseFila = item.TieneStockCritico ? "table-danger" : "";
-                
+
                 <tr class="@claseFila">
                     <td>@item.IdMedicamento</td>
                     <td><strong>@item.Nombre</strong></td>
@@ -46,6 +82,18 @@
                         else
                         {
                             <span class="badge bg-success">Normal</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="Gestionar" asp-route-id="@item.IdMedicamento"
+                           class="btn btn-sm btn-outline-primary">Editar</a>
+                        @if (item.Activo)
+                        {
+                            <form asp-action="DarDeBaja" method="post" class="d-inline"
+                                  onsubmit="return confirm('¿Dar de baja a @item.Nombre?')">
+                                <input type="hidden" name="id" value="@item.IdMedicamento" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Dar de baja</button>
+                            </form>
                         }
                     </td>
                 </tr>

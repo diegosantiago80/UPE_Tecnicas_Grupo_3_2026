@@ -15,6 +15,7 @@ namespace CapaDeEntidades
         private int _stockMinimo;
         private bool _requiereReceta;
         private int _idCategoria;
+        private int _idLaboratorio;
         private bool _activo;
 
         public int IdMedicamento { get => _idMedicamento; set => _idMedicamento = value; }
@@ -26,11 +27,13 @@ namespace CapaDeEntidades
         public int StockMinimo { get => _stockMinimo; set => _stockMinimo = value; }
         public bool RequiereReceta { get => _requiereReceta; set => _requiereReceta = value; }
         public int IdCategoria { get => _idCategoria; set => _idCategoria = value; }
+        public int IdLaboratorio { get => _idLaboratorio; set => _idLaboratorio = value; }
         public bool Activo { get => _activo; set => _activo = value; }
 
         public bool TieneStockCritico
         {
-            get => _stockActual < _stockMinimo;
+            // stock critico cuando el actual es igual o menor al minimo
+            get => _stockActual <= _stockMinimo;
         }
 
         public Medicamento() { }
