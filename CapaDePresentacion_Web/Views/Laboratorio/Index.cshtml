@@ -1,0 +1,74 @@
+@model IEnumerable<CapaDeEntidades.Laboratorio>
+
+@{
+    ViewData["Title"] = "Gestión de Laboratorios";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Laboratorios Proveedores</h1>
+        <a asp-action="Gestionar" class="btn btn-primary">+ Nuevo Laboratorio</a>
+    </div>
+
+    @if (TempData["Exito"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Exito"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <table class="table table-hover shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Razón Social</th>
+                <th>CUIT</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.IdLaboratorio</td>
+                    <td><strong>@item.RazonSocial</strong></td>
+                    <td>@item.Cuit</td>
+                    <td>@item.Telefono</td>
+                    <td>@item.Email</td>
+                    <td>
+                        @if (item.Activo)
+                        {
+                            <span class="badge bg-success">Activo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactivo</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="Gestionar" asp-route-id="@item.IdLaboratorio" class="btn btn-sm btn-outline-primary">Editar</a>
+                        @if (item.Activo)
+                        {
+                            <form asp-action="DarDeBaja" method="post" class="d-inline"
+                                  onsubmit="return confirm('¿Dar de baja a @item.RazonSocial?')">
+                                <input type="hidden" name="id" value="@item.IdLaboratorio" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Dar de baja</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

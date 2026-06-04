@@ -19,7 +19,8 @@ namespace CapaDePresentacion_Web.Controllers
 
             if (usuarioValido != null)
             {
-                HttpContext.Session.SetInt32("IdPerfil", usuarioValido.IdPerfil);
+                HttpContext.Session.SetInt32("IdUsuario",  usuarioValido.IdUsuario);
+                HttpContext.Session.SetInt32("IdPerfil",   usuarioValido.IdPerfil);
                 HttpContext.Session.SetString("NombreUsuario", usuarioValido.NombreReal);
                 HttpContext.Session.SetString("NombreRol", usuarioValido.NombreRol);
 

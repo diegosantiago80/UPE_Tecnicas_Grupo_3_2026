@@ -76,15 +76,8 @@ namespace CapaDePresentacion_Web.Controllers
                 // 3. PATRÓN STRATEGY: Calcula el total real según el cliente y los productos
                 decimal totalVenta = _ventaBll.CalcularTotalVenta(cliente, listaParaProcesar);
 
-                // 4. PROCESAR STOCK
-                bool exito = _medicamentoBll.ProcesarEgresoStock(listaParaProcesar);
-
-                if (exito)
-                {
-                    return Ok(new { msg = "Venta registrada con éxito", totalCobrado = totalVenta });
-                }
-
-                return BadRequest("No se pudo procesar el stock. Verifique si hay stock suficiente.");
+                // el descuento de stock lo maneja SP_RegistrarVenta (modulo de Victoria)
+                return Ok(new { msg = "Venta registrada con éxito", totalCobrado = totalVenta });
             }
             catch (Exception ex)
             {
