@@ -232,3 +232,32 @@ BEGIN
         END'
     END
     GO
+
+    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '25123456')
+    BEGIN
+        -- Usamos tu SP pasando: @Nombre, @Apellido, @Dni, @Telefono, @Email, @ObraSocial, @Activo
+        EXEC [dbo].[SP_CrearCliente] 'Carlos', 'González', '25123456', '1144445555', 'carlos.gonzalez@email.com', 'OSDE', 1;
+        PRINT 'Cliente (Carlos González) creado exitosamente.';
+    END
+    ELSE PRINT 'Cliente (DNI 25123456) ya existe. Se omitió la inserción.';
+
+    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '30987654')
+    BEGIN
+        EXEC [dbo].[SP_CrearCliente] 'María', 'Rodríguez', '30987654', '1155556666', 'maria.rodriquez@email.com', 'Swiss Medical', 1;
+        PRINT 'Cliente (María Rodríguez) creado exitosamente.';
+    END
+    ELSE PRINT 'Cliente (DNI 30987654) ya existe. Se omitió la inserción.';
+
+    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '44444444')
+    BEGIN
+        EXEC [dbo].[SP_CrearCliente] 'Lucas Fernando', 'Gómez', '44444444', '1122223333', 'lucas.gomez@email.com', 'IOMA', 1;
+        PRINT 'Cliente (Lucas Gómez) creado exitosamente.';
+    END
+    ELSE PRINT 'Cliente (DNI 40123987) ya existe. Se omitió la inserción.';
+
+    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '33333333')
+    BEGIN
+        EXEC [dbo].[SP_CrearCliente] 'Juan Carlos', 'López', '33333333', '1133334444', 'juan.lopez@email.com', 'PAMI', 1;
+        PRINT 'Cliente (Juan Carlos López) creado exitosamente.';
+    END
+    ELSE PRINT 'Cliente (DNI 22345678) ya existe. Se omitió la inserción.';
