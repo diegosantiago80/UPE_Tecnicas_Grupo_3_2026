@@ -1,31 +1,167 @@
-Primera entrega de trabajo practico integrador 
+# Sistema de Gestion de Farmacia — Grupo 3
 
-Breve descripcion del proyecto 
+**Materia:** Tecnicas de Programacion  
+**Profesor:** Ing. Chimuris, Andres  
+**Institucion:** UPE — 2026  
+**Repositorio:** [UPE_Tecnicas_Grupo_3_2026](https://github.com/diegosantiago80/UPE_Tecnicas_Grupo_3_2026)
 
-## Arquitectura y Patrones de Diseño
+---
 
-### Estructura de 4 Capas
+## Integrantes
 
-El proyecto está organizado en cuatro capas claramente separadas:
+| Nombre | Modulo | Rama |
+|---|---|---|
+| Diego Santiago | Stock / BD / Infraestructura | `feature/stock` |
+| Victoria Mac Kenzie | Ventas + Clientes | `feature/ventas` |
+| Cristian Lopez | Reportes del Gerente | `feature/gerencia` |
+| Kiara Poloni | Usuarios (ABM) + Login | `feature/login` |
 
-**CapaDeEntidades**: Define los modelos de dominio (Usuario, Cliente, Medicamento, Venta, Compra, etc.). Cada entidad cuenta con dos constructores: uno sin parámetros para crear instancias en tiempo de ejecución, y otro parametrizado para mapear datos desde la base de datos.
+---
 
-**CapaDeLogicaDeNegocio_BLL**: Contiene los servicios que implementan la lógica de negocio. Aquí residen las validaciones, reglas de negocio y orquestación entre capas. AuthService gestiona autenticación y permisos.
+## Descripcion
 
-**CapaDeAccesoDatos_DAL**: Maneja la comunicación con la base de datos exclusivamente a través de procedimientos almacenados. No contiene SQL embebido. 
-  ACLARACION: En esta primera etapa aun no contiene la conexion a la DB.
+Sistema administrativo de compras y ventas de productos para una farmacia. Permite gestionar usuarios con distintos roles, clientes, medicamentos, ventas y reportes gerenciales.
 
-**CapaDePresentacion**: Controllers y Views que manejan las solicitudes HTTP y presentan la interfaz al usuario según su rol y permisos.
+---
 
-### Patrones Implementados
+## Arquitectura — 4 Capas
 
-**Singleton**: El AuthService es una instancia única en toda la aplicación. Se inicializa automáticamente al cargar la clase. Administra la autenticación de usuarios y la configuración de perfiles.
+| Capa | Proyecto | Responsabilidad |
+|---|---|---|
+| **DAL** | `CapaDeAccesoADatos_DAL` | Acceso a BD exclusivamente mediante stored procedures. Sin SQL embebido. |
+| **Entidades** | `CapaDeEntidades` | Modelos y clases de dominio (Usuario, Cliente, Medicamento, Venta, etc.) |
+| **BLL** | `CapaDeLogicaDeNegocio_BLL` | Logica de negocio, validaciones y servicios |
+| **Web** | `CapaDePresentacion_Web` | Controllers, Views y configuracion ASP.NET Core MVC |
 
-**Composite**: Los perfiles (PerfilComposite) y permisos (PermisoSimple) forman una estructura jerárquica. Cada perfil puede contener múltiples permisos, permitiendo consultas simples sobre qué acciones tiene autorizado cada rol.
+---
 
-**Strategy**: Los cálculos de descuento implementan diferentes estrategias según el tipo de cliente. Cada estrategia encapsula un algoritmo de descuento distinto (descuento por obra social, descuento particular) permitiendo cambiar el comportamiento en tiempo de ejecución sin modificar el código cliente.
+## Tecnologias
 
-### Relaciones entre Entidades
+- **Backend:** C# / ASP.NET Core MVC (.NET 10)
+- **Base de datos:** SQL Server
+- **Acceso a datos:** ADO.NET con stored procedures
+- **Frontend:** Razor Views + Bootstrap 5
 
-Las entidades principales están relacionadas de forma relacional: Venta contiene múltiples DetalleVenta, Compra contiene múltiples DetalleCompra, Medicamento está categorizado y puede requerir receta. Esta estructura refleja la realidad del negocio y prepara el modelo para una base de datos relacional.
+---
 
+## Roles del sistema
+
+| Perfil | Permisos principales |
+|---|---|
+| **Administrador** | Alta de usuarios y perfiles |
+| **Vendedor** | Gestion de clientes, registro de ventas |
+| **Encargado de Stock** | Gestion de medicamentos, laboratorios, compras, alertas de stock minimo |
+| **Gerente** | Reportes de ventas, estadisticas de medicamentos, proyecciones |
+
+**Usuarios de prueba** (contrasena: `123` para todos):
+
+| Usuario | Perfil |
+|---|---|
+| `admin` | Administrador |
+| `vendedor` | Vendedor |
+| `deposito` | Encargado de Stock |
+| `gerente` | Gerente |
+
+---
+
+## Patrones de diseno implementados
+
+- **Singleton** — `AuthService`: instancia unica para login y gestion de sesion
+- **Composite** — `PermisosComposite`: estructura jerarquica de permisos por perfil
+- **Factory** — `BLLFactory`: creacion centralizada de servicios de la BLL
+- **Template Method** — `ProcesadorDeReportesTemplate`: esqueleto del algoritmo de reportes con implementaciones concretas por tipo
+- **Strategy** — `ICalculadorDescuento`: calculo de descuentos segun obra social del cliente
+- **Observer** — `StockObserver`: notificaciones de stock critico
+- **Proxy** — `ReporteDALProxy`: control de acceso y cache para la capa de reportes
+
+---
+
+## Instalacion
+
+### Requisitos previos
+- Visual Studio 2022 o superior
+- SQL Server (local o instancia remota)
+- .NET 10 SDK
+
+### Pasos
+
+**1. Ejecutar los scripts SQL en orden** sobre una base de datos `FarmaciaDB` nueva:
+
+```
+1. FarmaciaDB.sql                    -- Crea la BD, tablas base y usuarios del sistema
+2. FarmaciaDB_Script_B_Victoria.sql  -- Tablas Cliente, Venta, DetalleVenta y SPs
+3. FarmaciaDB_Script_C.sql           -- Tablas Categoria, Laboratorio, Medicamento, Compra y SPs
+4. FarmaciaDB_Script_Gerente.sql     -- SPs de reportes del Gerente
+5. FarmaciaDB_SeedData_Test.sql      -- (Opcional) Datos de prueba: 10 clientes y 10 ventas
+```
+
+**2. Configurar la cadena de conexion** en `CapaDePresentacion_Web/appsettings.json`:
+
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=TU_SERVIDOR;Database=FarmaciaDB;Trusted_Connection=True;"
+}
+```
+
+**3. Compilar y ejecutar** desde Visual Studio (F5) o con:
+
+```bash
+cd CapaDePresentacion_Web
+dotnet run
+```
+
+---
+
+## Estructura de carpetas
+
+```
+TrabajoPracticoIntegrador_Upe2026_Grupo3/
+├── CapaDeAccesoADatos_DAL/          -- DAL: stored procedures, conexion
+├── CapaDeEntidades/                 -- Modelos de dominio
+├── CapaDeLogicaDeNegocio_BLL/       -- Logica de negocio y patrones
+│   └── Estrategias/                 -- Patron Strategy (descuentos)
+├── CapaDePresentacion_Web/          -- ASP.NET Core MVC
+│   ├── Controllers/
+│   ├── Views/
+│   └── wwwroot/
+├── FarmaciaDB.sql
+├── FarmaciaDB_Script_B_Victoria.sql
+├── FarmaciaDB_Script_C.sql
+├── FarmaciaDB_Script_Gerente.sql
+└── FarmaciaDB_SeedData_Test.sql
+```
+
+---
+
+## Convenciones de codigo
+
+| Elemento | Convencion | Ejemplo |
+|---|---|---|
+| Atributos privados | Prefijo `_` | `_nombre`, `_idUsuario` |
+| Metodos que recuperan datos | Prefijo `Obtener` / `Recuperar` | `ObtenerUsuarios()` |
+| Variables y metodos | camelCase | `totalVenta`, `calcularDescuento()` |
+| Clases | PascalCase | `UsuarioDAL`, `VentaBLL` |
+| Comentarios | Minusculas, sin iconos | `// validar que el usuario tenga permisos` |
+| Idioma del codigo | Ingles para nombres, espanol para comentarios | — |
+
+---
+
+## Ramas
+
+| Rama | Contenido |
+|---|---|
+| `main` | Version estable integrada |
+| `feature/stock` | Modulo de stock, BD e infraestructura compartida |
+| `feature/ventas` | Modulo de ventas y clientes |
+| `feature/gerencia` | Modulo de reportes del gerente |
+| `feature/login` | Modulo de usuarios ABM y login |
+
+---
+
+## Entregables
+
+| Entrega | Estado |
+|---|---|
+| 1ra entrega — Analisis y Diseno | Completada |
+| 2da entrega — Integracion BD | En curso |
+| 3ra entrega — Final | Pendiente |
