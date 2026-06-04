@@ -23,11 +23,11 @@
                         <input type="text" id="nombreCliente" class="form-control" style="background-color: #e9ecef; font-weight: bold;" readonly placeholder="Esperando DNI...">
                     </div>
                     <div class="col-md-2">
- 
+
                         <label class="form-label fw-bold">Fecha</label>
                         <input type="text" class="form-control text-center" value="@DateTime.Now.ToShortDateString()" disabled />
                     </div>
-                    
+
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Cobro</label>
                         <select class="form-select" id="tipoDescuento" disabled>
@@ -39,12 +39,35 @@
 
                 <hr />
 
-                <!-- SELECCIÓN DE PRODUCTOS -->
+              
                 <div class="row g-3 align-items-end mb-4">
                     <div class="col-md-5">
                         <label class="form-label fw-bold">Medicamento</label>
-                        <select class="form-select" id="idMedicamento">
-                            <option value="">-- Seleccione del Stock --</option>
+                        <div style="position: relative;">
+                            <input type="text" id="buscarMedicamento" class="form-control"
+                                   placeholder="Escribí 3 letras para buscar..." autocomplete="off">
+                            <div id="listaMedicamentos" style="
+                            display: none;
+                            position: absolute;
+                            top: 100%;
+                            left: 0; right: 0;
+                            background: white;
+                            border: 1px solid #ced4da;
+                            border-radius: 0 0 4px 4px;
+                            max-height: 220px;
+                            overflow-y: auto;
+                            z-index: 9999;
+                            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                            "></div>
+                        </div>
+                        
+                        <input type="hidden" id="idMedicamento">
+                        <input type="hidden" id="dataReceta">
+                        <input type="hidden" id="dataPrecio">
+                        <input type="hidden" id="dataStock">
+
+                        
+                        <select id="opcionesOriginales" style="display:none;">
                             @foreach (var med in medicamentos)
                             {
                                 <option value="@med.IdMedicamento"
@@ -71,7 +94,7 @@
                     </div>
                 </div>
 
-                <!-- DETALLE -->
+               
                 <table class="table table-bordered" id="tablaDetalle">
                     <thead class="table-light">
                         <tr>
@@ -87,7 +110,7 @@
 
                 <div class="text-end mt-3">
                     <h5 class="text-muted">Subtotal Bruto: <span id="txtSubtotalBruto">$ 0.00</span></h5>
-                    
+
                     <div id="avisoVentaLibre" class="text-danger fw-bold mb-2" style="display: none;">
                         <i class="bi bi-exclamation-triangle"></i> Venta libre: No aplica descuento.
                     </div>
@@ -113,7 +136,7 @@
             }
         };
 
-        // --- VALIDACIÓN CLIENTE ---
+        
         document.getElementById("dniCliente").addEventListener("input", async function() {
             const dni = this.value.trim();
             const txtNombre = document.getElementById("nombreCliente");
@@ -123,24 +146,35 @@
                 txtNombre.value = "";
                 return;
             }
-            
+
             if (!this.checkValidity()) {
-                this.reportValidity(); // Muestra el mensaje "Ingrese solo números"
-                return; // Detiene la ejecución si hay letras o no son 8 números
+                this.reportValidity(); 
+                return; 
             }
-            
+
             if (dni.length > 7 && dni.length <= 11) {
                 const resp = await fetch(`/Cliente/ObtenerPorDni?dni=${dni}`);
                 const res = await resp.json();
 
                 if (res.success) {
+
+                    if (res.data.activo === false) {
+                        alert("Es un cliente inactivo, no puede realizar una compra.");
+                        txtNombre.value = "CLIENTE INACTIVO";
+                        txtNombre.style.color = "red";
+                        this.value = "";
+                        selectorCobro.value = "Particular";
+                        return; 
+                    }
+
+
                     txtNombre.value = res.data.nombre + " " + res.data.apellido;
                     txtNombre.style.color = "blue";
                     selectorCobro.value = (res.data.obraSocial === "Particular") ? "Particular" : "ObraSocial";
-                    actualizarTotales(); // Recalcular si cambia el cliente
+                    actualizarTotales(); 
                 } else {
                     txtNombre.value = "CLIENTE NO ENCONTRADO";
-                    txtNombre.style.color = "red"; // Se emite el mensaje 04
+                    txtNombre.style.color = "red"; 
                     if (confirm("El cliente no está registrado. ¿Desea darlo de alta ahora?")) {
                         window.location.href = "/Cliente/Gestionar";
                     }
@@ -148,21 +182,21 @@
             }
         });
 
-        // --- AGREGAR MEDICAMENTO ---
-        document.getElementById("btnAgregar").addEventListener("click", function() {
-            const select = document.getElementById("idMedicamento");
-            const option = select.options[select.selectedIndex];
+        
+              document.getElementById("btnAgregar").addEventListener("click", function() {
+            const idMed = document.getElementById("idMedicamento").value;
+            const nombreCompleto = document.getElementById("buscarMedicamento").value;
             const dni = document.getElementById("dniCliente").value;
 
             if (!dni) return alert("Ingrese el DNI del cliente primero.");
-            if (!select.value) return alert("Seleccione un producto");
-            
-            const cant = parseInt(document.getElementById("cantidad").value);
-            const stock = parseInt(option.getAttribute("data-stock"));
+            if (!idMed) return alert("Seleccione un producto usando el buscador.");
 
-            if (cant > stock) return alert("Producto sin stock."); // Se emite el mensaje 05
+           const cant = parseInt(document.getElementById("cantidad").value);
+           const stock = parseInt(document.getElementById("dataStock").value);
 
-            const requiereReceta = option.getAttribute("data-receta") === "True";
+            if (cant > stock) return alert("❌ Producto sin stock."); // Se emite el mensaje 05
+
+            const requiereReceta = document.getElementById("dataReceta").value === "True";
             const tieneReceta = document.getElementById("checkReceta").checked;
 
             if (requiereReceta && !tieneReceta) {
@@ -170,18 +204,22 @@
             }
 
             const item = {
-                id: parseInt(select.value),
-                nombre: option.text.substring(0, option.text.indexOf("- Stock")).trim(),
+                id: parseInt(idMed),
+                nombre: nombreCompleto.substring(0, nombreCompleto.indexOf("- Stock")).trim() || nombreCompleto,
                 cantidad: cant,
-                precio: parseFloat(option.getAttribute("data-precio")),
+                precio: parseFloat(document.getElementById("dataPrecio").value) || 0,
                 requiereReceta: requiereReceta
             };
 
             itemsVenta.push(item);
             renderizarTabla();
             actualizarTotales();
-            
-            select.selectedIndex = 0;
+
+            document.getElementById("idMedicamento").value = "";
+            document.getElementById("dataReceta").value = "";
+            document.getElementById("dataPrecio").value = "";
+            document.getElementById("dataStock").value = "";
+            document.getElementById("buscarMedicamento").value = "";
             document.getElementById("cantidad").value = 1;
             document.getElementById("checkReceta").checked = false;
         });
@@ -193,12 +231,8 @@
 
             itemsVenta.forEach((item, index) => {
                 const subtotalBruto = item.precio * item.cantidad;
-                
-                // USAMOS LA ESTRATEGIA para calcular el subtotal neto de este item
                 const calcular = EstrategiasDescuento[tipoCobro];
                 const subtotalNeto = calcular(subtotalBruto, item.requiereReceta);
-                
-                // Lógica para la etiqueta visual de descuento
                 const tieneDescuento = subtotalNeto < subtotalBruto;
                 const etiqueta = tieneDescuento
                     ? `<span class="badge bg-success">DTO. OS (40%)</span>`
@@ -209,7 +243,7 @@
                                                 ${item.nombre} <br>
                                                 <small class="text-muted">${item.requiereReceta ? 'Bajo Receta' : 'Venta Libre'}</small>
                                             </td>
-                                            <td class="text-center">${item.cantidad}</td>
+                                           <td class="text-center">${item.cantidad} ✅</td>
                                             <td class="text-end">$ ${item.precio.toFixed(2)}</td>
                                             <td class="text-end">
                                                 <div>$ ${subtotalNeto.toFixed(2)}</div>
@@ -240,20 +274,17 @@
             itemsVenta.forEach(item => {
                 const sub = item.precio * item.cantidad;
                 bruto += sub;
-                
+
                 // Aplicamos la estrategia elegida a cada producto
                 final += calcular(sub, item.requiereReceta);
             });
 
             document.getElementById("txtSubtotalBruto").innerText = `$ ${bruto.toFixed(2)}`;
             document.getElementById("txtTotalFinal").innerText = `$ ${final.toFixed(2)}`;
-            
-            // Re-renderizamos la tabla para actualizar las etiquetas de "CON DTO" o "SIN DTO"
-            // en caso de que haya cambiado el tipo de cobro al buscar el DNI
             renderizarTabla();
         }
 
-        // --- FINALIZAR VENTA ---
+        
         document.getElementById("btnFinalizar").addEventListener("click", function() {
             if (itemsVenta.length === 0) return alert("Cargue al menos un producto.");
 
@@ -266,7 +297,7 @@
                     Precio: i.precio
                 }))
             };
-
+         // --- CONFIRMAR VENTA---
             fetch('/Venta/ProcesarVenta', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -286,6 +317,61 @@
                     console.error(err);
                     alert("❌ Error de red o del servidor.");
                 });
+        });
+
+         // --- BÚSQUEDA DE MEDICAMENTOS ---
+        const todasLasOpciones = Array.from(
+            document.querySelectorAll("#opcionesOriginales option")
+        );
+
+        document.getElementById("buscarMedicamento").addEventListener("input", function () {
+            const texto = this.value.trim().toLowerCase();
+            const lista = document.getElementById("listaMedicamentos");
+
+            lista.innerHTML = "";
+
+            if (texto.length < 3) {
+                lista.style.display = "none";
+                return;
+            }
+
+            const coincidencias = todasLasOpciones.filter(op =>
+                op.text.toLowerCase().includes(texto)
+            );
+
+            if (coincidencias.length === 0) {
+                lista.innerHTML = `<div style="padding: 8px 12px; color: #999;">Sin resultados</div>`;
+                lista.style.display = "block";
+                return;
+            }
+
+            coincidencias.forEach(op => {
+                const item = document.createElement("div");
+                item.textContent = op.text;
+                item.style.cssText = "padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0;";
+
+                item.addEventListener("mouseenter", () => item.style.background = "#e9f5ff");
+                item.addEventListener("mouseleave", () => item.style.background = "white");
+
+                item.addEventListener("click", () => {
+                    document.getElementById("idMedicamento").value     = op.value;
+                    document.getElementById("dataReceta").value        = op.getAttribute("data-receta");
+                    document.getElementById("dataPrecio").value        = op.getAttribute("data-precio");
+                    document.getElementById("dataStock").value         = op.getAttribute("data-stock");
+                    document.getElementById("buscarMedicamento").value = op.text;
+                    lista.style.display = "none";
+                });
+
+                lista.appendChild(item);
+            });
+
+            lista.style.display = "block";
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest("#buscarMedicamento") && !e.target.closest("#listaMedicamentos")) {
+                document.getElementById("listaMedicamentos").style.display = "none";
+            }
         });
     </script>
 }
