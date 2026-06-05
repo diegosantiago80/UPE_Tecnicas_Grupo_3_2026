@@ -115,6 +115,51 @@ EXEC sys.sp_executesql N'
 GO
 
 
+-- SP para registrar como cliente a una persona que ya existe en el sistema (empleado)
+-- En lugar de crear una Persona nueva, reutiliza la existente y solo inserta el Cliente
+CREATE OR ALTER PROCEDURE SP_VincularEmpleadoComoCliente
+    @Dni       VARCHAR(20),
+    @ObraSocial VARCHAR(45),
+    @Activo    BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        -- verificar que la persona exista
+        DECLARE @IdPersonaExistente INT;
+        SELECT @IdPersonaExistente = IdPersona FROM Persona WHERE DNI = @Dni;
+
+        IF @IdPersonaExistente IS NULL
+        BEGIN
+            RAISERROR('No existe una persona registrada con ese DNI.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- verificar que no sea ya un cliente activo
+        IF EXISTS (SELECT 1 FROM Cliente WHERE IdPersona = @IdPersonaExistente AND Activo = 1)
+        BEGIN
+            RAISERROR('Esa persona ya está registrada como cliente activo.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- crear el cliente vinculando la persona existente, marcado como empleado
+        INSERT INTO Cliente (ObraSocial, Activo, EsEmpleado, IdPersona)
+        VALUES (@ObraSocial, @Activo, 1, @IdPersonaExistente);
+
+        DECLARE @NuevoIdCliente INT = SCOPE_IDENTITY();
+        COMMIT TRANSACTION;
+        SELECT @NuevoIdCliente AS IdCliente;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SP_ModificarCliente]') AND type in (N'P', N'PC'))
 BEGIN
     EXEC sys.sp_executesql N'
@@ -232,32 +277,3 @@ BEGIN
         END'
     END
     GO
-
-    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '25123456')
-    BEGIN
-        -- Usamos tu SP pasando: @Nombre, @Apellido, @Dni, @Telefono, @Email, @ObraSocial, @Activo
-        EXEC [dbo].[SP_CrearCliente] 'Carlos', 'González', '25123456', '1144445555', 'carlos.gonzalez@email.com', 'OSDE', 1;
-        PRINT 'Cliente (Carlos González) creado exitosamente.';
-    END
-    ELSE PRINT 'Cliente (DNI 25123456) ya existe. Se omitió la inserción.';
-
-    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '30987654')
-    BEGIN
-        EXEC [dbo].[SP_CrearCliente] 'María', 'Rodríguez', '30987654', '1155556666', 'maria.rodriquez@email.com', 'Swiss Medical', 1;
-        PRINT 'Cliente (María Rodríguez) creado exitosamente.';
-    END
-    ELSE PRINT 'Cliente (DNI 30987654) ya existe. Se omitió la inserción.';
-
-    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '44444444')
-    BEGIN
-        EXEC [dbo].[SP_CrearCliente] 'Lucas Fernando', 'Gómez', '44444444', '1122223333', 'lucas.gomez@email.com', 'IOMA', 1;
-        PRINT 'Cliente (Lucas Gómez) creado exitosamente.';
-    END
-    ELSE PRINT 'Cliente (DNI 40123987) ya existe. Se omitió la inserción.';
-
-    IF NOT EXISTS (SELECT 1 FROM [dbo].[Persona] WHERE TRIM(DNI) = '33333333')
-    BEGIN
-        EXEC [dbo].[SP_CrearCliente] 'Juan Carlos', 'López', '33333333', '1133334444', 'juan.lopez@email.com', 'PAMI', 1;
-        PRINT 'Cliente (Juan Carlos López) creado exitosamente.';
-    END
-    ELSE PRINT 'Cliente (DNI 22345678) ya existe. Se omitió la inserción.';

@@ -10,17 +10,20 @@ namespace CapaDeLogicaDeNegocio_BLL
     public class VentaBLL
     {
         private readonly ClienteDAL _clienteDAL = new ClienteDAL();
+        private readonly VentaDAL _ventaDAL = new VentaDAL();
 
-        public Cliente BuscarClientePorDni(string dni)
+        public Cliente BuscarClientePorDni(string dni, string dniVendedor = "")
         {
             var cliente = _clienteDAL.BuscarPorDni(dni);
             if (cliente == null)
-            {
                 throw new Exception("Cliente no registrado. Debe darlo de alta.");
-            }
+
+            // un empleado no puede ser cliente de su propia venta
+            if (cliente.EsEmpleado && !string.IsNullOrEmpty(dniVendedor) && cliente.Dni == dniVendedor)
+                throw new Exception("No es posible registrar una venta a un empleado del sistema. Solicitá a otro vendedor que realice la operación.");
+
             return cliente;
         }
-
 
         public decimal CalcularTotalVenta(Cliente cliente, List<Medicamento> medicamentosVendidos)
         {
@@ -44,6 +47,15 @@ namespace CapaDeLogicaDeNegocio_BLL
             }
 
             return totalAcumulado;
+        }
+
+        // persiste la venta en la BD y devuelve el IdVenta generado
+        public int RegistrarVenta(int idCliente, int idUsuarioVendedor, decimal total, List<DetalleVenta> detalle)
+        {
+            if (detalle == null || detalle.Count == 0)
+                throw new Exception("La venta no tiene productos.");
+
+            return _ventaDAL.RegistrarVenta(idCliente, idUsuarioVendedor, total, detalle);
         }
     }
 }

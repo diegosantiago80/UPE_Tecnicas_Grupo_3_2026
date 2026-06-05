@@ -133,3 +133,132 @@ BEGIN
     WHERE IdPerfil = @IdPerfil;
 END;
 GO
+
+-- SP para obtener todos los usuarios (para el index)
+CREATE OR ALTER PROCEDURE SP_ObtenerUsuarios
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- INNER JOIN para traer los datos del usuario y de su persona asociada
+    SELECT 
+        u.IdUsuario, 
+        u.NombreUsuario, 
+        u.Contrasena, 
+        u.IdPerfil, 
+        u.Activo,
+        p.IdPersona, 
+        p.DNI, 
+        p.Nombre, 
+        p.Apellido, 
+        p.Telefono, 
+        p.Email
+    FROM Usuario u
+    INNER JOIN Persona p ON u.IdPersona = p.IdPersona;
+END;
+GO
+
+-- SP para crear un nuevo usuario 
+CREATE OR ALTER PROCEDURE SP_AgregarUsuario
+    @DNI VARCHAR(20),
+    @Nombre VARCHAR(45),
+    @Apellido VARCHAR(45),
+    @Telefono VARCHAR(30),
+    @Email VARCHAR(45),
+    @NombreUsuario VARCHAR(45),
+    @Contrasena VARCHAR(255),
+    @IdPerfil INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Transaccion para asegurar que se guarden ambas tablas o ninguna
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Inserta primero en la tabla Persona
+        DECLARE @IdPersonaGenerado INT;
+        INSERT INTO Persona (DNI, Nombre, Apellido, Telefono, Email)
+        VALUES (@DNI, @Nombre, @Apellido, @Telefono, @Email);
+        
+        -- Captura el ID de la persona que se acaba de crear
+        SET @IdPersonaGenerado = SCOPE_IDENTITY();
+        
+        -- Encripta la contraseña
+        DECLARE @ContrasenaHash VARCHAR(255) = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @Contrasena), 2);
+        
+        -- Inserta en usuario usando el ID de la persona creada
+        INSERT INTO Usuario (IdPersona, NombreUsuario, Contrasena, IdPerfil, Activo)
+        VALUES (@IdPersonaGenerado, @NombreUsuario, @ContrasenaHash, @IdPerfil, 1);
+        
+        -- Si todo salio bien confirma los cambios
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        -- Si hubo un error deshace todo
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- SP para modificar un usuario existente
+CREATE OR ALTER PROCEDURE SP_ModificarUsuario
+    @IdUsuario INT,
+    @DNI VARCHAR(20),
+    @Nombre VARCHAR(45),
+    @Apellido VARCHAR(45),
+    @Telefono VARCHAR(30),
+    @Email VARCHAR(45),
+    @NombreUsuario VARCHAR(45),
+    @Contrasena VARCHAR(255),
+    @IdPerfil INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        DECLARE @IdPersonaAsociada INT = (SELECT IdPersona FROM Usuario WHERE IdUsuario = @IdUsuario);
+        
+        -- Actualiza los datos personales
+        UPDATE Persona
+        SET DNI = @DNI, Nombre = @Nombre, Apellido = @Apellido, Telefono = @Telefono, Email = @Email
+        WHERE IdPersona = @IdPersonaAsociada;
+        
+        -- Actualiza el Usuario
+        UPDATE Usuario
+        SET NombreUsuario = @NombreUsuario,
+            IdPerfil = @IdPerfil,
+            -- Si recibe una contraseña nueva, la encripta
+            -- Si esta vacia, deja la que ya estaba en la base de datos
+            Contrasena = CASE 
+                            WHEN LTRIM(RTRIM(@Contrasena)) <> '' 
+                            THEN CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @Contrasena), 2)
+                            ELSE Contrasena 
+                         END
+        WHERE IdUsuario = @IdUsuario;
+        
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- SP para eliminar un usuario (baja logica)
+CREATE OR ALTER PROCEDURE SP_EliminarUsuario
+    @IdUsuario INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Cambia el estado
+    UPDATE Usuario
+    SET Activo = 0
+    WHERE IdUsuario = @IdUsuario;
+END;
+GO

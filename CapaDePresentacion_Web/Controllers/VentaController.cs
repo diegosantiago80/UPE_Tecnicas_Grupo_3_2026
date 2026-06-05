@@ -23,65 +23,86 @@ namespace CapaDePresentacion_Web.Controllers
         {
             if (request?.Lineas == null) return BadRequest("Datos inválidos");
 
-            var cliente = _ventaBll.BuscarClientePorDni(request.DniCliente);
-            var medicamentosParaCalcular = new List<Medicamento>();
-
-            foreach (var item in request.Lineas)
+            try
             {
-                var med = _medicamentoBll.ObtenerPorId(item.IdMedicamento);
-                if (med != null)
-                {
-                    med.PrecioVenta = item.Precio;
-                    medicamentosParaCalcular.Add(med);
-                }
-            }
+                string dniVendedor = HttpContext.Session.GetString("DniUsuario") ?? string.Empty;
+                var cliente = _ventaBll.BuscarClientePorDni(request.DniCliente, dniVendedor);
 
-            decimal totalFinal = _ventaBll.CalcularTotalVenta(cliente, medicamentosParaCalcular);
-            return Json(new { success = true, total = totalFinal });
+                var medicamentosParaCalcular = new List<Medicamento>();
+                foreach (var item in request.Lineas)
+                {
+                    var med = _medicamentoBll.ObtenerPorId(item.IdMedicamento);
+                    if (med != null)
+                    {
+                        med.PrecioVenta = item.Precio;
+                        medicamentosParaCalcular.Add(med);
+                    }
+                }
+
+                decimal totalFinal = _ventaBll.CalcularTotalVenta(cliente, medicamentosParaCalcular);
+                return Json(new { success = true, total = totalFinal });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost]
         public IActionResult ProcesarVenta([FromBody] VentaRequestDTO request)
         {
-            // 1. Validaciones iniciales
             if (request?.Lineas == null || request.Lineas.Count == 0)
                 return BadRequest("La venta no tiene productos.");
 
             try
             {
-                // 2. Buscamos al cliente usando ClienteDAL a través de VentaBLL
-                var cliente = _ventaBll.BuscarClientePorDni(request.DniCliente);
+                // obtenemos el id del vendedor desde la sesion
+                int idVendedor = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
+                if (idVendedor == 0)
+                    return BadRequest("Sesión expirada. Por favor volvé a iniciar sesión.");
 
-                var listaParaProcesar = new List<Medicamento>();
+                // buscamos al cliente (incluye validacion de empleado vendiendose a si mismo)
+                string dniVendedor = HttpContext.Session.GetString("DniUsuario") ?? string.Empty;
+                var cliente = _ventaBll.BuscarClientePorDni(request.DniCliente, dniVendedor);
+
+                // armamos las listas para calcular total y para persistir
+                var medicamentosParaTotal = new List<Medicamento>();
+                var detalleParaGuardar    = new List<DetalleVenta>();
 
                 foreach (var item in request.Lineas)
                 {
                     var medOriginal = _medicamentoBll.ObtenerPorId(item.IdMedicamento);
-                    if (medOriginal != null)
-                    {
-                        // aca crea un objeto nuevo para no sobreescribir el stock real de la lista estática
-                        var medVenta = new Medicamento
-                        {
-                            IdMedicamento = medOriginal.IdMedicamento,
-                            Nombre = medOriginal.Nombre,
-                            PrecioVenta = item.Precio, 
-                            RequiereReceta = medOriginal.RequiereReceta,
-                            StockActual = item.Cantidad 
-                        };
+                    if (medOriginal == null) continue;
 
-                        listaParaProcesar.Add(medVenta);
-                    }
+                    // objeto para que Strategy calcule el total (usa StockActual como cantidad)
+                    medicamentosParaTotal.Add(new Medicamento
+                    {
+                        IdMedicamento  = medOriginal.IdMedicamento,
+                        Nombre         = medOriginal.Nombre,
+                        PrecioVenta    = item.Precio,
+                        RequiereReceta = medOriginal.RequiereReceta,
+                        StockActual    = item.Cantidad
+                    });
+
+                    // objeto para el detalle que va a la BD
+                    detalleParaGuardar.Add(new DetalleVenta
+                    {
+                        IdMedicamento  = item.IdMedicamento,
+                        Cantidad       = item.Cantidad,
+                        PrecioUnitario = item.Precio
+                    });
                 }
 
-                // 3. PATRÓN STRATEGY: Calcula el total real según el cliente y los productos
-                decimal totalVenta = _ventaBll.CalcularTotalVenta(cliente, listaParaProcesar);
+                // calcula el total aplicando descuentos (patron Strategy)
+                decimal totalVenta = _ventaBll.CalcularTotalVenta(cliente, medicamentosParaTotal);
 
-                // el descuento de stock lo maneja SP_RegistrarVenta (modulo de Victoria)
-                return Ok(new { msg = "Venta registrada con éxito", totalCobrado = totalVenta });
+                // persiste en BD: inserta en Venta + DetalleVenta y descuenta stock
+                int idVenta = _ventaBll.RegistrarVenta(cliente.IdCliente, idVendedor, totalVenta, detalleParaGuardar);
+
+                return Ok(new { msg = "Venta registrada con éxito", idVenta, totalCobrado = totalVenta });
             }
             catch (Exception ex)
             {
-                // Si el cliente no existe en la DAL, cae acá con el mensaje de la BLL
                 return BadRequest(ex.Message);
             }
         }

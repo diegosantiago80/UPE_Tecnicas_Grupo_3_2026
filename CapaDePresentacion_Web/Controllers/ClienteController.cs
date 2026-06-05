@@ -26,15 +26,29 @@ namespace CapaDePresentacion_Web.Controllers
         [HttpPost]
         public IActionResult Modificar([FromBody] Cliente cliente)
         {
-            bool exito = _clienteBll.ModificarCliente(cliente);
-            return Json(new { success = exito });
+            try
+            {
+                bool exito = _clienteBll.ModificarCliente(cliente);
+                return Json(new { success = exito, message = exito ? "" : "No se pudo actualizar el cliente." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpPost]
         public IActionResult Crear([FromBody] Cliente cliente)
         {
-            bool exito = _clienteBll.CrearCliente(cliente);
-            return Json(new { success = exito });
+            try
+            {
+                bool exito = _clienteBll.CrearCliente(cliente);
+                return Json(new { success = exito, message = exito ? "" : "No se pudo crear el cliente." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
     }
 }

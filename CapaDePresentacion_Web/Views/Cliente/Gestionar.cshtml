@@ -90,17 +90,18 @@
         document.getElementById("chkActivo").addEventListener("change", actualizarTextoActivo);
 
 
-                function actualizarTextoActivo() {
+        function actualizarTextoActivo() {
             const chk = document.getElementById("chkActivo");
             const lbl = document.getElementById("lblActivo");
             if (chk.checked) {
                 lbl.textContent = "Cliente Activo";
-                lbl.className = "form-check-label fw-bold text-success"; 
+                lbl.className = "form-check-label fw-bold text-success";
             } else {
                 lbl.textContent = "Cliente Inactivo";
-                lbl.className = "form-check-label fw-bold text-danger";  
+                lbl.className = "form-check-label fw-bold text-danger";
+            }
         }
-        }
+
         function habilitarCampos(estado) {
             
             const selectores = "#formEdicion input, #formEdicion select";
@@ -131,14 +132,14 @@
                         document.getElementById("txtNombre").value = c.nombre;
                         document.getElementById("txtApellido").value = c.apellido;
                         document.getElementById("txtTelefono").value = c.telefono;
-                        document.getElementById("txtEmail").value = c.email;
+                        document.getElementById("txtEmail").value = c.email; 
                         document.getElementById("cboObraSocial").value = c.obraSocial;
-                        document.getElementById("chkActivo").checked = c.activo;
+                        document.getElementById("chkActivo").checked = c.activo; 
 
 
         actualizarTextoActivo(); 
 
-        
+
                         formEdicion.style.display = "block";
                         habilitarCampos(false);
                         btnModificar.style.display = "inline-block";
@@ -216,10 +217,10 @@
                 .then(res => res.json())
                 .then(res => {
                     if (res.success) {
-                        alert("✅ Operación realizada con éxito.");
+                        alert("Operación realizada con éxito.");
                         location.reload();
                     } else {
-                        alert("❌ Error: No se pudo completar la operación.");
+                        alert("Error: " + (res.message || "No se pudo completar la operación."));
                     }
                 });
         });

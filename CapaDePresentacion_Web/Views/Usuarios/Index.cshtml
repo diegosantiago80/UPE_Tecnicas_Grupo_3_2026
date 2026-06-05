@@ -1,0 +1,99 @@
+@model IEnumerable<CapaDeEntidades.Usuario>
+@using CapaDeLogicaDeNegocio_BLL
+@{
+    ViewData["Title"] = "Gestionar Usuarios";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-1" style="border-radius: 15px;">
+
+        <div class="card-header bg-warning text-dark" style="padding: 12px 20px; border-top-left-radius: 15px; border-top-right-radius: 15px;">
+            <h5 class="mb-0 fw-bold">Gestión de Usuarios</h5>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-end mb-3">
+                <a href="/Usuarios/Crear" class="btn bg-warning text-dark px-4 shadow-sm" title="Registrar Usuario" style="font-weight: 500; border-radius: 20px;">
+                    + Nuevo Usuario
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" style="border-collapse: separate; border-spacing: 0;">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Perfil</th>
+                            <th>DNI</th>
+                            <th>Nombre Completo</th>
+                            <th style="width: 120px;">Modificar</th>
+                            <th style="width: 120px;">Eliminar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @* iteramos sobre la coleccion ordenada recibida desde el controller *@
+                            foreach (var user in Model)
+                            {
+                                @* obtenemos la descripcion del perfil consultando la logica de negocio por id *@
+                                var nombrePerfil = AuthService.Instance.ObtenerPerfilPorId(user.IdPerfil)?.Nombre ?? "Sin Rol";
+                                <tr>
+                                    <td class="text-center">@user.NombreUsuario</td>
+                                    <td class="fw-bold text-muted text-center">@nombrePerfil</td>
+                                    <td class="text-center">@user.Dni</td>
+                                    <td class="text-center">@user.NombreCompleto</td>
+                                    <td class="text-center">
+                                        <a href="/Usuarios/Editar/@user.IdUsuario" class="btn btn-sm btn-outline-secondary" style="border-radius: 10px;" title="Modificar Datos">
+                                            ✏️ Editar
+                                        </a>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-danger shadow-sm"
+                                                style="width: 35px; font-weight: bold; border-radius: 10px;"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#confirmarBajaModal"
+                                                title="Eliminar Usuario"
+                                                onclick="prepararBaja('@user.IdUsuario', '@user.NombreCompleto')">
+                                            X
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* modal de confirmacion para baja logica *@
+<div class="modal fade" id="confirmarBajaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 15px;">
+            <div class="modal-header bg-warning text-dark" style="border-top-left-radius: 15px; border-top-right-radius: 15px;">
+                <h5 class="modal-title">Gestión de Usuarios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="mb-2">¿Confirma la eliminación del usuario?</p>
+                <h5 id="usuarioNombreBaja" class="fw-bold text-dark"></h5>
+            </div>
+            <div class="modal-footer justify-content-center border-0">
+                <button type="button" class="btn shadow-sm" style="background-color: #e0e0e0; color: #6c757d; border-radius: 20px; padding: 8px 20px;" data-bs-dismiss="modal">Cancelar</button>
+                <a id="enlaceConfirmarBaja" href="#" class="btn btn-danger px-4 shadow-sm" style="border-radius: 20px; padding: 8px 20px;">Confirmar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // prepara el modal con los datos de la fila seleccionada
+        function prepararBaja(id, nombre) {
+            document.getElementById('usuarioNombreBaja').innerText = nombre;
+            document.getElementById('enlaceConfirmarBaja').href = '/Usuarios/Eliminar/' + id;
+        }
+    </script>
+}

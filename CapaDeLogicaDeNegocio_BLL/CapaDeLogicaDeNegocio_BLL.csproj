@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -10,10 +10,7 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.0-preview1.26124.5" />
-  </ItemGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\CapaDeAccesoADatos_DAL\CapaDeAccesoADatos_DAL.csproj" />
     <ProjectReference Include="..\CapaDeEntidades\CapaDeEntidades.csproj" />

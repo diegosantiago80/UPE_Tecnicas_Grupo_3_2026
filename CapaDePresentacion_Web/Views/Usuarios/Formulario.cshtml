@@ -1,0 +1,82 @@
+@model CapaDeEntidades.Usuario
+@{
+    ViewData["Title"] = Model?.IdUsuario == 0 ? "Nuevo Usuario" : "Modificar Usuario";
+}
+
+<div class="container mt-4 d-flex justify-content-center">
+    <div class="card shadow-sm border-0" style="border-radius: 15px; max-width: 650px; width: 100%; background-color: #fffafb;">
+        <div class="card-body p-4">
+
+            <h4 class="text-center mb-4 text-dark" style="font-weight: 300; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                @(Model?.IdUsuario == 0 ? "Registrar Usuario" : "Modificar Usuario")
+            </h4>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger small p-2 text-center" style="border-radius: 10px;">@ViewBag.Error</div>
+            }
+
+            <form action="/Usuarios/Guardar" method="post">
+                <input type="hidden" name="IdUsuario" value="@Model?.IdUsuario" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Nombre</label>
+                        <input type="text" name="Nombre" value="@Model?.Nombre" class="form-control rounded-3 border-0 shadow-sm" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Apellido</label>
+                        <input type="text" name="Apellido" value="@Model?.Apellido" class="form-control rounded-3 border-0 shadow-sm" required />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">DNI</label>
+                        <input type="text" name="Dni" value="@Model?.Dni" class="form-control rounded-3 border-0 shadow-sm" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Teléfono</label>
+                        <input type="text" name="Telefono" value="@Model?.Telefono" class="form-control rounded-3 border-0 shadow-sm" required />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Email</label>
+                    <input type="text" name="Email" value="@Model?.Email" class="form-control rounded-3 border-0 shadow-sm" required />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Nombre de Usuario</label>
+                        <input type="text" name="NombreUsuario" value="@Model?.NombreUsuario" class="form-control rounded-3 border-0 shadow-sm" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Contraseña</label>
+                        @* si edita muestra 8 asteriscos; si es nuevo, vacio y obligatorio *@
+                        <input type="password" name="Contrasena"
+                               value="@(Model?.IdUsuario > 0 ? "********" : "")"
+                               class="form-control rounded-3 border-0 shadow-sm"
+                        @(Model?.IdUsuario == 0 ? "required" : "") />
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted small">Perfil</label>
+                    <select name="IdPerfil" class="form-select rounded-3 border-0 shadow-sm" required>
+                        <option value="">Seleccione un perfil...</option>
+                        <option value="1" selected="@(Model?.IdPerfil == 1)">Administrador</option>
+                        <option value="2" selected="@(Model?.IdPerfil == 2)">Vendedor</option>
+                        <option value="3" selected="@(Model?.IdPerfil == 3)">Encargado de Stock</option>
+                        <option value="4" selected="@(Model?.IdPerfil == 4)">Gerente</option>
+                    </select>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="/Usuarios/Index" class="btn shadow-sm" style="background-color: #e0e0e0; color: #6c757d; border-radius: 20px; padding: 8px 20px;">Cancelar</a>
+                    <button type="submit" class="btn bg-warning text-dark shadow-sm" style="border-radius: 20px; padding: 8px 20px; font-weight: 500;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
