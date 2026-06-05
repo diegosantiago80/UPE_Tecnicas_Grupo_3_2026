@@ -416,3 +416,4 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/CapaDePresentacion_Web/appsettings.Development.json
