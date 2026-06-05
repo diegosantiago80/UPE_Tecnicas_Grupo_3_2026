@@ -88,6 +88,7 @@ namespace CapaDeLogicaDeNegocio_BLL
                                     string nombre = dr["Nombre"]?.ToString() ?? string.Empty;
                                     string apellido = dr["Apellido"]?.ToString() ?? string.Empty;
                                     string user = dr["NombreUsuario"]?.ToString() ?? string.Empty;
+                                    string dni = dr["DNI"]?.ToString() ?? string.Empty;
                                     string rol = ObtenerPerfilPorId(idPerfil)?.Nombre ?? "Desconocido";
 
                                     return new UsuarioDatos
@@ -97,7 +98,8 @@ namespace CapaDeLogicaDeNegocio_BLL
                                         Pass = string.Empty,
                                         NombreReal = $"{nombre} {apellido}".Trim(),
                                         NombreRol = rol,
-                                        IdPerfil = idPerfil
+                                        IdPerfil = idPerfil,
+                                        Dni = dni
                                     };
                                 }
                             }
@@ -125,5 +127,6 @@ namespace CapaDeLogicaDeNegocio_BLL
         public string NombreReal { get; set; } = string.Empty;
         public string NombreRol { get; set; } = string.Empty;
         public int IdPerfil { get; set; }
+        public string Dni { get; set; } = string.Empty;
     }
 }

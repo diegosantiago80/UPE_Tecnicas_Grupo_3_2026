@@ -1,5 +1,6 @@
 ﻿using CapaDeAccesoADatos_DAL;
 using CapaDeEntidades;
+using Microsoft.Data.SqlClient;
 
 namespace CapaDeLogicaDeNegocio_BLL
 {
@@ -8,9 +9,9 @@ namespace CapaDeLogicaDeNegocio_BLL
         private readonly ClienteDAL _clienteDAL = new ClienteDAL();
 
         public Cliente? BuscarCliente(string dni)
-        {
-            if (string.IsNullOrEmpty(dni)) return null;
-            return _clienteDAL.BuscarPorDni(dni);
+            {
+          if (string.IsNullOrEmpty(dni)) return null;
+        return _clienteDAL.BuscarPorDni(dni);
         }
 
         public bool ModificarCliente(Cliente cliente)

@@ -21,6 +21,7 @@ namespace CapaDeLogicaDeNegocio_BLL
             return cliente;
         }
 
+
         public decimal CalcularTotalVenta(Cliente cliente, List<Medicamento> medicamentosVendidos)
         {
             ICalculadorDescuento estrategia;
