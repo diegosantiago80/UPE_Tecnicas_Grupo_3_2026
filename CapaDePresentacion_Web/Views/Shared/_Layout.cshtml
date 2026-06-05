@@ -105,14 +105,14 @@
                     @if (auth.PerfilTienePermiso(idPerfil, "GestionarUsuarios"))
                     {
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Usuarios" asp-action="Index">Usuarios</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Usuarios" asp-action="Index">Gestionar Usuarios</a>
                         </li>
                     }
 
                     @if (auth.PerfilTienePermiso(idPerfil, "ConfigurarPerfiles"))
                     {
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Perfil" asp-action="Index">Perfiles y Permisos</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Perfiles" asp-action="Index">Gestionar Perfiles</a>
                         </li>
                     }
                 </ul>
