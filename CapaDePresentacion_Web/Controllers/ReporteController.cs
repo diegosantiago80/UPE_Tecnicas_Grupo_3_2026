@@ -33,19 +33,33 @@ namespace CapaDePresentacion_Web.Controllers
         // --------------------------------------------------------------------------------
 
         // URL para acceder a este método en tu navegador: /Reporte/VerReporte
-        public IActionResult VerReporte(string periodo, DateTime? fechaFiltro, string buscarVendedor)
+        public IActionResult VerReporte(string periodo, string fechaFiltro, string buscarVendedor)
         {
-            // Evitamos posibles nulos en la búsqueda de texto
             buscarVendedor = buscarVendedor ?? string.Empty;
             periodo = periodo ?? string.Empty;
+            fechaFiltro = fechaFiltro ?? string.Empty;
 
-            // PASO 1: Recibimos los parámetros provenientes de la URL o formulario
+            // carga inicial sin parametros: mostramos pantalla vacia hasta que el usuario busque
+            bool esCargaInicial = string.IsNullOrEmpty(periodo)
+                               && string.IsNullOrEmpty(fechaFiltro)
+                               && string.IsNullOrEmpty(buscarVendedor);
 
-            // PASO 2: Le delegamos el trabajo a la capa de Negocio (BLL).
-            // Usamos la instancia global de la clase.
-            var ventas = _reportesBLL.ObtenerVentasFiltradas(periodo, fechaFiltro, buscarVendedor);
+            if (esCargaInicial)
+                return View(new List<Reporte>());
 
-            // PASO 3: Devolvemos la interfaz gráfica (Vista) enviándole la lista de ventas finales.
+            // parseamos la fecha manualmente para evitar problemas de cultura
+            // el input type="date" manda siempre yyyy-MM-dd independiente del idioma del navegador
+            DateTime? fecha = null;
+            if (!string.IsNullOrEmpty(fechaFiltro) &&
+                DateTime.TryParseExact(fechaFiltro, "yyyy-MM-dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out DateTime fechaParsed))
+            {
+                fecha = fechaParsed;
+            }
+
+            var ventas = _reportesBLL.ObtenerVentasFiltradas(periodo, fecha, buscarVendedor);
             return View(ventas ?? new List<Reporte>());
         }
 

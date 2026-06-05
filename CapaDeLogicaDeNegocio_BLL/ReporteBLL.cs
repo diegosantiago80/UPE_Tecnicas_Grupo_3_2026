@@ -28,10 +28,10 @@ namespace CapaDeLogicaDeNegocio_BLL
                 return new List<Reporte>();
             }
 
-            // PASO 2 (Común): Obtener datos. (El proxy los entrega, ya sea de caché o del MockDAL)
-            var ventasCrudas = _reportesDal.ObtenerTodasLasVentas();
+            // cada subclase sabe como obtener sus propios datos desde la DAL
+            var ventasCrudas = ObtenerDatos();
 
-            // PASO 3 (Específico): Aplicar filtros específicos en las subclases
+            // aplicar filtros en memoria si la subclase lo necesita
             var ventasFiltradas = AplicarFiltros(ventasCrudas);
 
             return ventasFiltradas;
@@ -41,6 +41,9 @@ namespace CapaDeLogicaDeNegocio_BLL
         {
             return true;
         }
+
+        // cada subclase decide que metodo de la DAL llama
+        protected abstract List<Reporte> ObtenerDatos();
 
         protected abstract List<Reporte> AplicarFiltros(List<Reporte> ventas);
     }
@@ -57,14 +60,28 @@ namespace CapaDeLogicaDeNegocio_BLL
     {
         private readonly string _periodo;
         private readonly DateTime? _fechaFiltro;
-        private readonly string _vendedor; // Añadido campo privado
-        // Constructor actualizado para recibir el vendedor
+        private readonly string _vendedor;
+
         public ProcesadorVentasPorPeriodo(string periodo, DateTime? fechaFiltro, string vendedor)
         {
             _periodo = periodo;
             _fechaFiltro = fechaFiltro;
             _vendedor = vendedor;
         }
+
+        // llama al SP real con los parametros del reporte de ventas
+        protected override List<Reporte> ObtenerDatos()
+        {
+            string nombreUsuario = string.IsNullOrEmpty(_vendedor) ? string.Empty : _vendedor;
+
+            // si viene fecha puntual sin periodo, traemos todo y dejamos que AplicarFiltros
+            // haga el filtro en memoria. el SP usa @Fecha solo para calcular rangos de periodo.
+            string periodoParaSP = string.IsNullOrEmpty(_periodo) ? null : _periodo;
+            DateTime? fechaParaSP = string.IsNullOrEmpty(_periodo) ? null : _fechaFiltro;
+
+            return _reportesDal.ObtenerReporteVentas(nombreUsuario, periodoParaSP, fechaParaSP);
+        }
+
         protected override List<Reporte> AplicarFiltros(List<Reporte> ventas)
         {
             // Regla de Negocio 0: Filtrar por Nombre de Vendedor si se especificó
@@ -123,6 +140,12 @@ namespace CapaDeLogicaDeNegocio_BLL
             return !string.IsNullOrEmpty(_medicamento);
         }
 
+        // trae todas las ventas sin filtro de vendedor para la proyeccion comparativa
+        protected override List<Reporte> ObtenerDatos()
+        {
+            return _reportesDal.ObtenerReporteVentas(string.Empty, null, null);
+        }
+
         protected override List<Reporte> AplicarFiltros(List<Reporte> ventas)
         {
             var filtradas = ventas.Where(v => v.Medicamento.ToLower().Contains(_medicamento.ToLower())).ToList();
@@ -143,7 +166,7 @@ namespace CapaDeLogicaDeNegocio_BLL
 
 
     /// <summary>
-    /// 4. TERCERA SUBCLASE (NUEVA): Encargada del cálculo y consolidado de estadísticas por medicamento.
+    /// 4. TERCERA SUBCLASE: Estadisticas de medicamentos con stock real desde BD.
     /// </summary>
     public class ProcesadorEstadisticasMedicamento : ProcesadorDeReportesTemplate
     {
@@ -154,62 +177,24 @@ namespace CapaDeLogicaDeNegocio_BLL
             _medicamento = medicamento;
         }
 
-        protected override bool ValidarRequisitos()
+        protected override bool ValidarRequisitos() => true;
+
+        // usa el SP dedicado que devuelve unidades vendidas + stock real en una sola consulta
+        protected override List<Reporte> ObtenerDatos()
         {
-            return true; // No es obligatorio pasar un medicamento (traerá todos si está vacío)
+            return _reportesDal.ObtenerEstadisticasTodosMedicamentos();
         }
 
+        // filtra por nombre si el gerente busco un medicamento especifico
         protected override List<Reporte> AplicarFiltros(List<Reporte> ventas)
         {
-            // 1. Filtrar las ventas crudas si se buscó un medicamento en particular
-            var filtradas = ventas;
-            if (!string.IsNullOrEmpty(_medicamento))
-            {
-                filtradas = ventas
-                    .Where(v => v.Medicamento != null && v.Medicamento.ToLower().Contains(_medicamento.ToLower()))
-                    .ToList();
-            }
+            if (string.IsNullOrEmpty(_medicamento))
+                return ventas;
 
-            // 2. Establecer rangos del mes actual e inicio/fin del mes anterior
-            DateTime hoy = DateTime.Today;
-            DateTime inicioMesActual = new DateTime(hoy.Year, hoy.Month, 1);
-            DateTime inicioMesAnterior = inicioMesActual.AddMonths(-1);
-            DateTime finMesAnterior = inicioMesActual.AddDays(-1);
-
-            // 3. Agrupar por medicamento para calcular totales y variación mensual
-            var reporteEstadisticas = filtradas
-                .GroupBy(v => v.Medicamento)
-                .Select(grupo =>
-                {
-                    string nombreMed = grupo.Key;
-                    int unidadesTotales = grupo.Count();
-                    int unidadesMesActual = grupo.Count(v => v.Fecha.Date >= inicioMesActual.Date && v.Fecha.Date <= hoy.Date);
-                    int unidadesMesAnterior = grupo.Count(v => v.Fecha.Date >= inicioMesAnterior.Date && v.Fecha.Date <= finMesAnterior.Date);
-
-                    decimal porcentajeVariacion = 0;
-                    if (unidadesMesAnterior > 0)
-                    {
-                        porcentajeVariacion = ((decimal)(unidadesMesActual - unidadesMesAnterior) / unidadesMesAnterior) * 100;
-                    }
-                    else if (unidadesMesActual > 0)
-                    {
-                        porcentajeVariacion = 100; // Incremento del 100% si en el mes anterior no hubo ventas
-                    }
-
-                    // Se lee el stock disponible del primer registro del grupo en base a los datos mockeados en la DAL
-                    int stock = grupo.FirstOrDefault()?.StockDisponible ?? 0;
-
-                    return new Reporte
-                    {
-                        NombreMedicamento = nombreMed,
-                        UnidadesVendidas = unidadesTotales,
-                        PorcentajeVariacion = porcentajeVariacion,
-                        StockDisponible = stock
-                    };
-                })
+            return ventas
+                .Where(r => r.Medicamento != null &&
+                            r.Medicamento.ToLower().Contains(_medicamento.ToLower()))
                 .ToList();
-
-            return reporteEstadisticas;
         }
     }
 
