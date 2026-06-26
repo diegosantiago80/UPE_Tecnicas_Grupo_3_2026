@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using CapaDeLogicaDeNegocio_BLL;
 using CapaDeEntidades;
+using CapaDePresentacion_Web.Filters;
+using CapaDePresentacion_Web.Models;
 using System.Collections.Generic;
 
-namespace CapaPresentacion_Web.Controllers
+namespace CapaDePresentacion_Web.Controllers
 {
+    // solo el encargado puede registrar compras/ingresos de mercaderia
+    [SesionRequerida("Encargado")]
     public class CompraController : Controller
     {
         // factory: creacion centralizada de servicios BLL
@@ -16,7 +20,7 @@ namespace CapaPresentacion_Web.Controllers
         {
             // los combos del form se arman desde la bll
             ViewBag.Laboratorios = _laboratorioBLL.ObtenerActivos();
-            ViewBag.Medicamentos = _medicamentoBLL.ObtenerTodos();
+            ViewBag.Medicamentos = _medicamentoBLL.ObtenerActivos();  // ✅ CORREGIDO: Solo medicamentos activos
             return View();
         }
 
@@ -58,17 +62,4 @@ namespace CapaPresentacion_Web.Controllers
         }
     }
 
-    // DTO para recibir la compra desde el cliente
-    public class CompraRequestDTO
-    {
-        public int IdLaboratorio { get; set; }
-        public List<ItemCompraDTO> Items { get; set; } = new List<ItemCompraDTO>();
-    }
-
-    public class ItemCompraDTO
-    {
-        public int IdMedicamento { get; set; }
-        public int Cantidad { get; set; }
-        public decimal PrecioUnitario { get; set; }
-    }
 }
