@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.0-preview1.26124.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CapaDeAccesoADatos_DAL\CapaDeAccesoADatos_DAL.csproj" />
     <ProjectReference Include="..\CapaDeEntidades\CapaDeEntidades.csproj" />
   </ItemGroup>
