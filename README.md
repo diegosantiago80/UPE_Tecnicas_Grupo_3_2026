@@ -107,15 +107,10 @@ Scripts/7_Farmacia_DB.Script_sql.sql     -- Script complementario
 
 **3. Compilar y ejecutar** desde Visual Studio (F5) o con:
 
-
 ```bash
 cd CapaDePresentacion_Web
 dotnet run
 ```
-**Restaurar librerías de frontend** (Bootstrap, jQuery):
-
-cd CapaDePresentacion_Web
-libman restore
 
 ---
 
@@ -183,11 +178,5 @@ TrabajoPracticoIntegrador_Upe2026_Grupo3/
 | Entrega | Estado |
 |---|---|
 | 1ra entrega — Analisis y Diseno | Completada |
-<<<<<<< Updated upstream
 | 2da entrega — Integracion BD | Completada |
 | 3ra entrega — Final | Completada |
-
-=======
-| 2da entrega — Integracion BD | Completada|
-| 3ra entrega — Final | Finalien Curso |
->>>>>>> Stashed changes
