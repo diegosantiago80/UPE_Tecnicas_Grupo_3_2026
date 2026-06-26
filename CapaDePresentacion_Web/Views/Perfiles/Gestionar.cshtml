@@ -1,0 +1,164 @@
+﻿@model CapaDeEntidades.Perfil
+@{
+    bool esNuevo = Model.IdPerfil == 0;
+    ViewData["Title"] = esNuevo ? "Nuevo Perfil" : "Modificar Perfil";
+    string permisos = Model.PermisosAsignados ?? "";
+}
+
+<div class="container mt-4 d-flex justify-content-center">
+    <div class="card shadow-sm border-0" style="border-radius: 15px; max-width: 750px; width: 100%; background-color: #fffafb;">
+        <div class="card-body p-4">
+
+            <h4 class="text-center mb-4 text-dark" style="font-weight: 300; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <i class="bi bi-ui-checks-grid me-2 text-warning"></i>@ViewData["Title"]
+            </h4>
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger small p-2 text-center d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    @TempData["Error"]
+                </div>
+            }
+
+            <form asp-action="Guardar" method="post">
+                <input type="hidden" name="IdPerfil" value="@Model.IdPerfil" />
+
+                <div class="mb-4">
+                    <label class="form-label text-muted small text-uppercase fw-bold">Descripción del Perfil <span class="text-danger">*</span></label>
+                    <input type="text" name="Descripcion" value="@Model.Descripcion" class="form-control rounded-3 border-0 shadow-sm" style="padding: 10px 15px;" required placeholder="Ej: Auditor" maxlength="15" />
+                </div>
+
+                <div class="mb-4 p-4" style="background-color: #ffffff; border-radius: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                    <label class="form-label text-muted small text-uppercase fw-bold mb-3">SELECCIONAR PERMISOS</label>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="text-dark small border-bottom pb-2 mb-3 fw-bold"><i class="bi bi-shield-lock me-1 text-warning"></i> Sistema y Seguridad</h6>
+
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="GestionarUsuarios" id="permUsuarios" @(permisos.Contains("GestionarUsuarios") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permUsuarios">Gestionar Usuarios</label>
+                            </div>
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="ConfigurarPerfiles" id="permPerfiles" @(permisos.Contains("ConfigurarPerfiles") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permPerfiles">Configurar Perfiles</label>
+                            </div>
+                            <div class="form-check custom-checkbox">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="ConsultarLog" id="permLog" @(permisos.Contains("ConsultarLog") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permLog">Consultar Log de Auditoría</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-dark small border-bottom pb-2 mb-3 fw-bold"><i class="bi bi-cart-check me-1 text-success"></i> Ventas y Clientes</h6>
+
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="RegistrarVenta" id="permVenta" @(permisos.Contains("RegistrarVenta") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permVenta">Registrar Venta de Medicamentos</label>
+                            </div>
+                            <div class="form-check custom-checkbox">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="GestionarClientes" id="permClientes" @(permisos.Contains("GestionarClientes") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permClientes">Gestionar Clientes</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-dark small border-bottom pb-2 mb-3 fw-bold"><i class="bi bi-box-seam me-1 text-primary"></i> Inventario y Stock</h6>
+
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="ControlStock" id="permStock" @(permisos.Contains("ControlStock") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permStock">Control y Alerta de Stock Crítico</label>
+                            </div>
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="RegistrarCompra" id="permCompra" @(permisos.Contains("RegistrarCompra") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permCompra">Registrar Compra de Medicamentos</label>
+                            </div>
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="GestionarMedicamentos" id="permMed" @(permisos.Contains("GestionarMedicamentos") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permMed">Gestionar Medicamentos</label>
+                            </div>
+                            <div class="form-check custom-checkbox">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="GestionarLaboratorios" id="permLab" @(permisos.Contains("GestionarLaboratorios") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permLab">Gestionar Laboratorios Proveedores</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-dark small border-bottom pb-2 mb-3 fw-bold"><i class="bi bi-graph-up-arrow me-1 text-info"></i> Reportes y Gerencia</h6>
+
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="VerReporte" id="permRepRent" @(permisos.Contains("VerReporte") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permRepRent">Generar Reporte de Ventas</label>
+                            </div>
+                            <div class="form-check custom-checkbox mb-2">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="GenerarEstadisticas" id="permEstVta" @(permisos.Contains("GenerarEstadisticas") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permEstVta">Visualizar Estadísticas de Ventas</label>
+                            </div>
+                            <div class="form-check custom-checkbox">
+                                <input class="form-check-input" type="checkbox" name="permisosSeleccionados" value="GenerarProyeccion" id="permProy" @(permisos.Contains("GenerarProyeccion") ? "checked" : "")>
+                                <label class="form-check-label text-secondary small" for="permProy">Reporte de Proyección de Compras</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Index" class="btn shadow-sm" style="background-color: #e0e0e0; color: #6c757d; border-radius: 20px; padding: 8px 20px;">Cancelar</a>
+                    <button type="submit" class="btn bg-warning text-dark shadow-sm" style="border-radius: 20px; padding: 8px 20px; font-weight: 500;">
+                        Guardar Perfil
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .custom-checkbox .form-check-input:checked {
+            background-color: #ffc107;
+            border-color: #ffc107;
+        }
+
+        .custom-checkbox .form-check-input {
+            width: 1.2em;
+            height: 1.2em;
+            margin-top: 0.15em;
+        }
+
+            .custom-checkbox .form-check-input:focus {
+                box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+            }
+    </style>
+}
+
+@section Scripts {
+    <script>
+            document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('input[name="permisosSeleccionados"]');
+
+            checkboxes.forEach(chk => {
+                chk.addEventListener('click', function(e) {
+                    if (!this.checked) {
+                        const tildados = document.querySelectorAll('input[name="permisosSeleccionados"]:checked').length;
+                        if (tildados === 0) {
+                            e.preventDefault();
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Acción bloqueada',
+                                text: 'El perfil debe tener al menos un permiso habilitado para funcionar.',
+                                confirmButtonColor: '#ffc107',
+                                customClass: { popup: 'rounded-4' }
+                            });
+                        }
+                    }
+                });
+            });
+
+            document.querySelector('[name="Descripcion"]').addEventListener('input', function () {
+                this.value = this.value.replace(/[^A-Za-z0-9 ]/g, '').replace(/ {2,}/g, ' ').replace(/^ /, '');
+            });
+        });
+    </script>
+}

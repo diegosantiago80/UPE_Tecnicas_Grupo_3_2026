@@ -12,6 +12,24 @@
         </div>
 
         <div class="card-body p-4">
+            @if (TempData["Exito"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" style="border-radius: 10px;">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>@TempData["Exito"]</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>@TempData["Error"]</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
             <div class="d-flex justify-content-end mb-3">
                 <a href="/Usuarios/Crear" class="btn bg-warning text-dark px-4 shadow-sm" title="Registrar Usuario" style="font-weight: 500; border-radius: 20px;">
                     + Nuevo Usuario
@@ -33,10 +51,8 @@
                     <tbody>
                         @if (Model != null && Model.Any())
                         {
-                            @* iteramos sobre la coleccion ordenada recibida desde el controller *@
                             foreach (var user in Model)
                             {
-                                @* obtenemos la descripcion del perfil consultando la logica de negocio por id *@
                                 var nombrePerfil = AuthService.Instance.ObtenerPerfilPorId(user.IdPerfil)?.Nombre ?? "Sin Rol";
                                 <tr>
                                     <td class="text-center">@user.NombreUsuario</td>
@@ -49,13 +65,9 @@
                                         </a>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" class="btn btn-sm btn-danger shadow-sm"
-                                                style="width: 35px; font-weight: bold; border-radius: 10px;"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#confirmarBajaModal"
-                                                title="Eliminar Usuario"
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
                                                 onclick="prepararBaja('@user.IdUsuario', '@user.NombreCompleto')">
-                                            X
+                                            Eliminar
                                         </button>
                                     </td>
                                 </tr>
@@ -68,32 +80,47 @@
     </div>
 </div>
 
-@* modal de confirmacion para baja logica *@
-<div class="modal fade" id="confirmarBajaModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow" style="border-radius: 15px;">
-            <div class="modal-header bg-warning text-dark" style="border-top-left-radius: 15px; border-top-right-radius: 15px;">
-                <h5 class="modal-title">Gestión de Usuarios</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4 text-center">
-                <p class="mb-2">¿Confirma la eliminación del usuario?</p>
-                <h5 id="usuarioNombreBaja" class="fw-bold text-dark"></h5>
-            </div>
-            <div class="modal-footer justify-content-center border-0">
-                <button type="button" class="btn shadow-sm" style="background-color: #e0e0e0; color: #6c757d; border-radius: 20px; padding: 8px 20px;" data-bs-dismiss="modal">Cancelar</button>
-                <a id="enlaceConfirmarBaja" href="#" class="btn btn-danger px-4 shadow-sm" style="border-radius: 20px; padding: 8px 20px;">Confirmar</a>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <script>
-        // prepara el modal con los datos de la fila seleccionada
+        document.querySelector('[name="Dni"]').addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        document.querySelector('[name="Telefono"]').addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        document.querySelector('[name="NombreUsuario"]').addEventListener('input', function () { 
+            this.value = this.value.replace(/[^A-Za-z0-9]/g, '');
+        });
+
+        document.querySelector('[name="Contrasena"]').addEventListener('input', function () {
+            this.value = this.value.replace(/[^A-Za-z0-9]/g, '');
+        });
+
+        document.querySelector('[name="Nombre"]').addEventListener('input', function () {
+            this.value = this.value.replace(/[^A-Za-zÀ-ÿÑñ ]/g, '').replace(/ {2,}/g, ' ').replace(/^ /, '');
+        });
+
+        document.querySelector('[name="Apellido"]').addEventListener('input', function () {
+            this.value = this.value.replace(/[^A-Za-zÀ-ÿÑñ ]/g, '').replace(/ {2,}/g, ' ').replace(/^ /, '');
+        });
+
         function prepararBaja(id, nombre) {
-            document.getElementById('usuarioNombreBaja').innerText = nombre;
-            document.getElementById('enlaceConfirmarBaja').href = '/Usuarios/Eliminar/' + id;
+            Swal.fire({
+                icon: "warning",
+                title: "¿Eliminar usuario?",
+                html: `Esta acción dará de baja a <strong>${nombre}</strong>.`,
+                showCancelButton: true,
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar",
+                confirmButtonColor: "#dc3545",
+                cancelButtonColor: "#6c757d"
+            }).then(result => {
+                if (result.isConfirmed){
+                    window.location.href = '/Usuarios/Eliminar/' + id;
+                }
+            });
         }
     </script>
 }

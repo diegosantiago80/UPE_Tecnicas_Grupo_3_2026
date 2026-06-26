@@ -22,42 +22,48 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small">Nombre</label>
-                        <input type="text" name="Nombre" value="@Model?.Nombre" class="form-control rounded-3 border-0 shadow-sm" required />
+                        <input type="text" name="Nombre" value="@Model?.Nombre" maxlength="15" class="form-control rounded-3 border-0 shadow-sm" required />
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small">Apellido</label>
-                        <input type="text" name="Apellido" value="@Model?.Apellido" class="form-control rounded-3 border-0 shadow-sm" required />
+                        <input type="text" name="Apellido" value="@Model?.Apellido" maxlength="15" class="form-control rounded-3 border-0 shadow-sm" required />
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small">DNI</label>
-                        <input type="text" name="Dni" value="@Model?.Dni" class="form-control rounded-3 border-0 shadow-sm" required />
+                        <input type="text" name="Dni" value="@Model?.Dni" maxlength="8" class="form-control rounded-3 border-0 shadow-sm" required />
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small">Teléfono</label>
-                        <input type="text" name="Telefono" value="@Model?.Telefono" class="form-control rounded-3 border-0 shadow-sm" required />
+                        <input type="text" name="Telefono" value="@Model?.Telefono" maxlength="15" class="form-control rounded-3 border-0 shadow-sm" required />
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label text-muted small">Email</label>
-                    <input type="text" name="Email" value="@Model?.Email" class="form-control rounded-3 border-0 shadow-sm" required />
+                    <input type="text" name="Email" value="@Model?.Email" maxlength="50" class="form-control rounded-3 border-0 shadow-sm" required />
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small">Nombre de Usuario</label>
-                        <input type="text" name="NombreUsuario" value="@Model?.NombreUsuario" class="form-control rounded-3 border-0 shadow-sm" required />
+                        <input type="text" name="NombreUsuario" value="@Model?.NombreUsuario" maxlength="10" class="form-control rounded-3 border-0 shadow-sm" required />
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted small">Contraseña</label>
-                        @* si edita muestra 8 asteriscos; si es nuevo, vacio y obligatorio *@
                         <input type="password" name="Contrasena"
                                value="@(Model?.IdUsuario > 0 ? "********" : "")"
+                               maxlength="8"
                                class="form-control rounded-3 border-0 shadow-sm"
                         @(Model?.IdUsuario == 0 ? "required" : "") />
+                        @if (Model?.IdUsuario > 0)
+                        {
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>Dejá este campo sin cambios para mantener la contraseña actual.
+                            </small>
+                        }
                     </div>
                 </div>
 
@@ -65,10 +71,21 @@
                     <label class="form-label text-muted small">Perfil</label>
                     <select name="IdPerfil" class="form-select rounded-3 border-0 shadow-sm" required>
                         <option value="">Seleccione un perfil...</option>
-                        <option value="1" selected="@(Model?.IdPerfil == 1)">Administrador</option>
-                        <option value="2" selected="@(Model?.IdPerfil == 2)">Vendedor</option>
-                        <option value="3" selected="@(Model?.IdPerfil == 3)">Encargado de Stock</option>
-                        <option value="4" selected="@(Model?.IdPerfil == 4)">Gerente</option>
+
+                        @if (ViewBag.Perfiles != null)
+                        {
+                            foreach (var perfil in ViewBag.Perfiles)
+                            {
+                                if (Model?.IdPerfil == perfil.IdPerfil)
+                                {
+                                    <option value="@perfil.IdPerfil" selected>@perfil.Descripcion</option>
+                                }
+                                else
+                                {
+                                    <option value="@perfil.IdPerfil">@perfil.Descripcion</option>
+                                }
+                            }
+                        }
                     </select>
                 </div>
 
