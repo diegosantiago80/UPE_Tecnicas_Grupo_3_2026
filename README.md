@@ -66,13 +66,13 @@ Sistema administrativo de compras y ventas de productos para una farmacia. Permi
 
 ## Patrones de diseno implementados
 
-- **Singleton** — `AuthService`: instancia unica para login y gestion de sesion
-- **Composite** — `PermisosComposite`: estructura jerarquica de permisos por perfil
-- **Factory** — `BLLFactory`: creacion centralizada de servicios de la BLL
-- **Template Method** — `ProcesadorDeReportesTemplate`: esqueleto del algoritmo de reportes con implementaciones concretas por tipo
-- **Strategy** — `ICalculadorDescuento`: calculo de descuentos segun obra social del cliente
-- **Observer** — `StockObserver`: notificaciones de stock critico
-- **Proxy** — `ReporteDALProxy`: control de acceso y cache para la capa de reportes
+- **Singleton** — `AuthService`: instancia unica para login y gestion de sesion (obligatorio)
+- **Composite** — `PermisosComposite`: estructura jerarquica de permisos por perfil (obligatorio)
+- **Factory** — `BLLFactory`: creacion centralizada de servicios de la BLL (patron creacional)
+- **Template Method** — `ReporteBLL`: esqueleto del algoritmo de reportes, cada tipo de reporte implementa los pasos concretos (patron de comportamiento)
+- **Strategy** — `ICalculadorDescuento`: calculo de descuentos segun tipo de cliente (Particular, ObraSocial, Empleado, EmpleadoObraSocial)
+- **Observer** — `StockObserver` y `ClienteObserver`: notificaciones de stock critico y eventos de cliente
+- **Filtro de autorizacion** — `SesionRequeridaAttribute`: control de acceso por rol en todos los controllers, evita acceso directo por URL
 
 ---
 
@@ -85,14 +85,16 @@ Sistema administrativo de compras y ventas de productos para una farmacia. Permi
 
 ### Pasos
 
-**1. Ejecutar los scripts SQL en orden** sobre una base de datos `FarmaciaDB` nueva:
+**1. Ejecutar los scripts SQL en orden** (carpeta `Scripts/`) sobre una base de datos `FarmaciaDB` nueva:
 
 ```
-1. FarmaciaDB.sql                    -- Crea la BD, tablas base y usuarios del sistema
-2. FarmaciaDB_Script_B_Victoria.sql  -- Tablas Cliente, Venta, DetalleVenta y SPs
-3. FarmaciaDB_Script_C.sql           -- Tablas Categoria, Laboratorio, Medicamento, Compra y SPs
-4. FarmaciaDB_Script_Gerente.sql     -- SPs de reportes del Gerente
-5. FarmaciaDB_SeedData_Test.sql      -- (Opcional) Datos de prueba: 10 clientes y 10 ventas
+Scripts/1_FarmaciaDB.sql                 -- Crea la BD, tablas base y usuarios del sistema
+Scripts/2_FarmaciaDB_Script.sql          -- Tablas Cliente, Venta, DetalleVenta y SPs
+Scripts/3_ FarmaciaDB_Script.sql         -- Tablas Categoria, Laboratorio, Medicamento, Compra y SPs
+Scripts/4_FarmaciaDB_Script.sql          -- SPs de reportes del Gerente
+Scripts/5_FarmaciaDB_SeedData_Extra.sql  -- Datos adicionales de prueba
+Scripts/6_FarmaciaDB_SeedData_Test.sql   -- (Opcional) 10 clientes y 10 ventas de prueba
+Scripts/7_Farmacia_DB.Script_sql.sql     -- Script complementario
 ```
 
 **2. Configurar la cadena de conexion** en `CapaDePresentacion_Web/appsettings.json`:
@@ -122,13 +124,13 @@ TrabajoPracticoIntegrador_Upe2026_Grupo3/
 │   └── Estrategias/                 -- Patron Strategy (descuentos)
 ├── CapaDePresentacion_Web/          -- ASP.NET Core MVC
 │   ├── Controllers/
+│   ├── Filters/                     -- Filtro SesionRequerida (autorizacion por rol)
+│   ├── Models/                      -- ViewModels
 │   ├── Views/
 │   └── wwwroot/
-├── FarmaciaDB.sql
-├── FarmaciaDB_Script_B_Victoria.sql
-├── FarmaciaDB_Script_C.sql
-├── FarmaciaDB_Script_Gerente.sql
-└── FarmaciaDB_SeedData_Test.sql
+├── Pruebas_unitarias/               -- Tests unitarios (xUnit)
+├── Documentacion/                   -- Diagramas, especificaciones y entregables
+└── Scripts/                         -- Scripts SQL numerados en orden de ejecucion
 ```
 
 ---
@@ -158,10 +160,24 @@ TrabajoPracticoIntegrador_Upe2026_Grupo3/
 
 ---
 
+## Pruebas unitarias
+
+| Archivo | Clase bajo prueba |
+|---|---|
+| `AuthServiceTests.cs` | `AuthService` (Singleton) |
+| `AuthServicePermisosTests.cs` | `AuthService` — validacion de permisos por rol |
+| `PermisosCompositeTests.cs` | `PermisosComposite` (Composite) |
+| `ReporteBLLTests.cs` | `ReporteBLL` (Template Method) |
+| `VentaBLLTests.cs` | `VentaBLL` — flujo de venta |
+| `DescuentoTests.cs` | Estrategias de descuento (Strategy) |
+
+---
+
 ## Entregables
 
 | Entrega | Estado |
 |---|---|
 | 1ra entrega — Analisis y Diseno | Completada |
-| 2da entrega — Integracion BD | En curso |
-| 3ra entrega — Final | Pendiente |
+| 2da entrega — Integracion BD | Completada |
+| 3ra entrega — Final | Completada |
+
