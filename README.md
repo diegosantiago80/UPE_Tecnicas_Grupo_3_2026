@@ -178,6 +178,11 @@ TrabajoPracticoIntegrador_Upe2026_Grupo3/
 | Entrega | Estado |
 |---|---|
 | 1ra entrega — Analisis y Diseno | Completada |
+<<<<<<< Updated upstream
 | 2da entrega — Integracion BD | Completada |
 | 3ra entrega — Final | Completada |
 
+=======
+| 2da entrega — Integracion BD | Completada|
+| 3ra entrega — Final | Finalien Curso |
+>>>>>>> Stashed changes
