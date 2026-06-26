@@ -9,8 +9,12 @@ namespace CapaDeLogicaDeNegocio_BLL
         public static MedicamentoBLL CrearMedicamentoBLL() => new MedicamentoBLL();
         public static LaboratorioBLL CrearLaboratorioBLL() => new LaboratorioBLL();
         public static CompraBLL CrearCompraBLL() => new CompraBLL();
-        public static CategoriaDALBLL CrearCategoriaBLL() => new CategoriaDALBLL();
+        public static CategoriaBLL CrearCategoriaBLL() => new CategoriaBLL();
         public static VentaBLL CrearVentaBLL() => new VentaBLL();
         public static ClienteBLL CrearClienteBLL() => new ClienteBLL();
+        public static UsuarioBLL CrearUsuarioBLL() => new UsuarioBLL();
+        public static PerfilBLL CrearPerfilBLL() => new PerfilBLL();
+        public static AuditoriaBLL CrearAuditoriaBLL() => new AuditoriaBLL();
+        public static ReporteBLL_TemplateMethod CrearReporteBLL() => new ReporteBLL_TemplateMethod();
     }
 }

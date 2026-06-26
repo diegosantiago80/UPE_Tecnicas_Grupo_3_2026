@@ -6,102 +6,187 @@ using System.Collections.Generic;
 
 namespace CapaDePresentacion_Web.Controllers
 {
-    // ====================================================================================
-    // CAPA DE PRESENTACIÓN: El Controlador (Controller)
-    // ====================================================================================
-    // El Controlador es el puente entre lo que el usuario ve en la web (Vista) y las
-    // reglas del negocio (BLL). NUNCA debe conectarse a la base de datos (DAL) ni 
-    // realizar cálculos complejos. Su único trabajo es recibir peticiones HTTP, 
-    // enviarlas a la BLL, y devolver la pantalla (Vista) adecuada con los resultados.
-    // ====================================================================================
-
-    // NO PONER ACÁ NINGÚN [Route(...)]. El framework MVC usa la ruta convencional: /Reporte
     public class ReporteController : Controller
     {
-        // --------------------------------------------------------------------------------
-        // 1. CONEXIÓN CON LA CAPA DE NEGOCIO (BLL)
-        // --------------------------------------------------------------------------------
-        // Aquí instanciamos la "Fachada" que creamos con el patrón Template Method.
-        // El controlador NO sabe (ni le importa) que por detrás hay un "Template Method"
-        // o un "Proxy de Caché". Solo sabe que al usar esta clase, obtendrá las ventas.
-        // Esto se llama "Bajo Acoplamiento", una excelente práctica.
         private readonly ReporteBLL_TemplateMethod _reportesBLL = new ReporteBLL_TemplateMethod();
 
-
-        // --------------------------------------------------------------------------------
-        // 2. ACCIONES DEL CONTROLADOR (Endpoints)
-        // --------------------------------------------------------------------------------
-
-        // URL para acceder a este método en tu navegador: /Reporte/VerReporte
+        [HttpGet]
+        [HttpPost]
         public IActionResult VerReporte(string periodo, string fechaFiltro, string buscarVendedor)
         {
-            buscarVendedor = buscarVendedor ?? string.Empty;
-            periodo = periodo ?? string.Empty;
-            fechaFiltro = fechaFiltro ?? string.Empty;
+            bool esPeticionPost = HttpContext.Request.Method == "POST";
 
-            // carga inicial sin parametros: mostramos pantalla vacia hasta que el usuario busque
-            bool esCargaInicial = string.IsNullOrEmpty(periodo)
-                               && string.IsNullOrEmpty(fechaFiltro)
-                               && string.IsNullOrEmpty(buscarVendedor);
+            string vendedorLimpio = buscarVendedor?.Trim() ?? string.Empty;
+            string fechaFinStr = periodo?.Trim() ?? string.Empty;
+            string fechaInicioStr = fechaFiltro?.Trim() ?? string.Empty;
 
-            if (esCargaInicial)
-                return View(new List<Reporte>());
-
-            // parseamos la fecha manualmente para evitar problemas de cultura
-            // el input type="date" manda siempre yyyy-MM-dd independiente del idioma del navegador
-            DateTime? fecha = null;
-            if (!string.IsNullOrEmpty(fechaFiltro) &&
-                DateTime.TryParseExact(fechaFiltro, "yyyy-MM-dd",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None,
-                    out DateTime fechaParsed))
+            // Si entra por primera vez
+            if (!esPeticionPost && string.IsNullOrEmpty(fechaFinStr) && string.IsNullOrEmpty(fechaInicioStr) && string.IsNullOrEmpty(vendedorLimpio))
             {
-                fecha = fechaParsed;
+                return View(new List<Reporte>());
             }
 
-            var ventas = _reportesBLL.ObtenerVentasFiltradas(periodo, fecha, buscarVendedor);
-            return View(ventas ?? new List<Reporte>());
+            DateTime hoy = DateTime.Today;
+            DateTime? dInicio = null;
+            DateTime? dFin = null;
+
+            if (!string.IsNullOrEmpty(fechaInicioStr) && DateTime.TryParseExact(fechaInicioStr, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedInicio))
+            {
+                dInicio = parsedInicio;
+            }
+
+            if (!string.IsNullOrEmpty(fechaFinStr) && DateTime.TryParseExact(fechaFinStr, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedFin))
+            {
+                // SOLUCIÓN: Agregamos 23 horas, 59 mins y 59 segs para abarcar TODO el día
+                dFin = parsedFin.Date.AddDays(1).AddTicks(-1);
+            }
+
+            // SOLUCIÓN DIARIA: Si solo llegó la fecha de inicio (búsqueda Diaria), 
+            // convertimos dFin al último segundo de ese mismo día para que la BD encuentre las ventas.
+            if (dInicio.HasValue && !dFin.HasValue)
+            {
+                dFin = dInicio.Value.Date.AddDays(1).AddTicks(-1);
+            }
+
+            if (esPeticionPost)
+            {
+                if (vendedorLimpio.Length > 50)
+                {
+                    ViewBag.ErrorMessage = "El nombre del vendedor no puede superar los 50 caracteres.";
+                    return View(new List<Reporte>());
+                }
+
+                if (dInicio.HasValue && dInicio.Value.Date > hoy)
+                {
+                    ViewBag.ErrorMessage = "La fecha de inicio no puede ser una fecha futura.";
+                    return View(new List<Reporte>());
+                }
+
+                if (dFin.HasValue && dFin.Value.Date > hoy)
+                {
+                    ViewBag.ErrorMessage = "La fecha de fin no puede ser una fecha futura.";
+                    return View(new List<Reporte>());
+                }
+
+                if (dInicio.HasValue && dFin.HasValue && dInicio.Value.Date > dFin.Value.Date)
+                {
+                    ViewBag.ErrorMessage = "La fecha de inicio no puede ser mayor a la fecha de fin.";
+                    return View(new List<Reporte>());
+                }
+            }
+
+            try
+            {
+                // Ahora sí, las fechas viajan con el formato horario completo y preciso.
+                var ventas = _reportesBLL.ObtenerVentasFiltradas(dInicio, dFin, vendedorLimpio);
+                return View(ventas ?? new List<Reporte>());
+            }
+            catch (ArgumentException ex)
+            {
+                ViewBag.ErrorMessage = ex.Message;
+                return View(new List<Reporte>());
+            }
+            catch (Exception)
+            {
+                ViewBag.ErrorMessage = "Ocurrió un error inesperado al procesar el reporte de ventas. Intente nuevamente más tarde.";
+                return View(new List<Reporte>());
+            }
         }
 
-        // URL: /Reporte/GenerarEstadistica
         [HttpGet]
         public ActionResult GenerarEstadistica(string buscarMedicamento)
         {
-            // Evitamos posibles nulos en la cadena de búsqueda
             buscarMedicamento = buscarMedicamento ?? string.Empty;
 
-            // Obtenemos los reportes procesados por el Template Method usando el atributo global
-            List<Reporte> lista = _reportesBLL.ObtenerEstadisticasMedicamento(buscarMedicamento);
+            if (string.IsNullOrEmpty(buscarMedicamento))
+                return View(new List<Reporte>());
 
-            // Devolverá automáticamente la vista "GenerarEstadistica.cshtml"
-            return View(lista ?? new List<Reporte>());
+            try
+            {
+                List<Reporte> lista = _reportesBLL.ObtenerEstadisticasMedicamento(buscarMedicamento);
+                return View(lista ?? new List<Reporte>());
+            }
+            catch (ArgumentException ex)
+            {
+                ViewBag.ErrorMessage = ex.Message;
+                return View(new List<Reporte>());
+            }
+            catch (Exception)
+            {
+                ViewBag.ErrorMessage = "Error al conectar con el servidor de estadísticas.";
+                return View(new List<Reporte>());
+            }
         }
 
-        // URL: /Reporte/Proyeccion (Carga inicial de la pantalla por GET)
         [HttpGet]
         public IActionResult Proyeccion()
         {
-            // Carga la pantalla con una lista vacía hasta que el Gerente presione "Filtrar"
             return View(new List<Reporte>());
         }
 
-        // URL: /Reporte/Proyeccion (Procesa el formulario cuando se presionan los filtros por POST)
         [HttpPost]
         public IActionResult Proyeccion(string medicamento, DateTime? fechaInicio, DateTime? fechaFin)
         {
-            medicamento = medicamento ?? string.Empty;
+            medicamento = medicamento?.Trim() ?? string.Empty;
 
-            // PASO 1: Recibimos los datos de búsqueda.
+            if (string.IsNullOrEmpty(medicamento) && !fechaInicio.HasValue && !fechaFin.HasValue)
+            {
+                ViewBag.ErrorMessage = "Debe ingresar al menos un filtro para generar la proyección.";
+                return View("Proyeccion", new List<Reporte>());
+            }
 
-            // PASO 2: Le delegamos TODO el trabajo a la BLL. 
-            // Fíjate que el controlador está "limpio". No hay condicionales lógicos ("Ifs"), 
-            // no hay filtros directos a listas ("Where"). Todo está centralizado en el Patrón
-            // Template Method que diseñamos en la capa inferior.
-            var ventasProyectadas = _reportesBLL.FiltrarVentasComparativa(medicamento, fechaInicio, fechaFin);
+            DateTime hoy = DateTime.Today;
 
-            // PASO 3: Devolvemos la vista visual de la proyección ("Proyeccion.cshtml"), 
-            // inyectándole los datos que pasaron por el Template Method y el Proxy de Caché.
-            return View("Proyeccion", ventasProyectadas ?? new List<Reporte>());
+            if (fechaInicio.HasValue && fechaInicio.Value.Date > hoy)
+            {
+                ViewBag.ErrorMessage = "La fecha de inicio no puede ser una fecha futura.";
+                RetenerDatosFormularioProyeccion(medicamento, fechaInicio, fechaFin);
+                return View("Proyeccion", new List<Reporte>());
+            }
+
+            if (fechaFin.HasValue)
+            {
+                // Parche de horario para proyecciones
+                fechaFin = fechaFin.Value.Date.AddDays(1).AddTicks(-1);
+
+                if (fechaFin.Value.Date > hoy)
+                {
+                    ViewBag.ErrorMessage = "La fecha de fin no puede ser una fecha futura.";
+                    RetenerDatosFormularioProyeccion(medicamento, fechaInicio, fechaFin);
+                    return View("Proyeccion", new List<Reporte>());
+                }
+            }
+
+            if (fechaInicio.HasValue && fechaFin.HasValue && fechaInicio.Value.Date > fechaFin.Value.Date)
+            {
+                ViewBag.ErrorMessage = "La fecha de inicio no puede ser mayor a la fecha de fin.";
+                RetenerDatosFormularioProyeccion(medicamento, fechaInicio, fechaFin);
+                return View("Proyeccion", new List<Reporte>());
+            }
+
+            try
+            {
+                var ventasProyectadas = _reportesBLL.FiltrarVentasComparativa(medicamento, fechaInicio, fechaFin);
+                return View("Proyeccion", ventasProyectadas ?? new List<Reporte>());
+            }
+            catch (ArgumentException ex)
+            {
+                ViewBag.ErrorMessage = ex.Message;
+                RetenerDatosFormularioProyeccion(medicamento, fechaInicio, fechaFin);
+                return View("Proyeccion", new List<Reporte>());
+            }
+            catch (Exception)
+            {
+                ViewBag.ErrorMessage = "No se pudo generar la proyección debido a un error interno.";
+                return View("Proyeccion", new List<Reporte>());
+            }
+        }
+
+        private void RetenerDatosFormularioProyeccion(string medicamento, DateTime? fechaInicio, DateTime? fechaFin)
+        {
+            ViewBag.MedicamentoBuscado = medicamento;
+            ViewBag.FechaInicio = fechaInicio?.ToString("yyyy-MM-dd");
+            ViewBag.FechaFin = fechaFin?.ToString("yyyy-MM-dd");
         }
     }
 }

@@ -6,9 +6,6 @@ using System.Data;
 
 namespace CapaDeAccesoADatos_DAL
 {
-    // ====================================================================================
-    // CONTRATO: Exigido por la BLL
-    // ====================================================================================
     public interface IReporteDAL
     {
         List<Reporte> ObtenerTodasLasVentas();
@@ -17,12 +14,43 @@ namespace CapaDeAccesoADatos_DAL
         List<Reporte> ObtenerEstadisticasTodosMedicamentos();
     }
 
-    // ====================================================================================
-    // SUJETO REAL: Va a la base de datos real con ADO.NET (Conexión Centralizada)
-    // ====================================================================================
     public class ReporteDALReal : IReporteDAL
     {
-        // 1. Método para la grilla de Reporte de Ventas (VerReporte)
+        public List<Reporte> ObtenerTodasLasVentas()
+        {
+            List<Reporte> lista = new List<Reporte>();
+
+            using (SqlConnection conn = new SqlConnection(Conexion.CadenaDeConexion))
+            {
+                using (SqlCommand cmd = new SqlCommand("dbo.sp_ReporteVentas", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@NombreUsuario", DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Periodo", DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Fecha", DBNull.Value);
+
+                    conn.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            lista.Add(new Reporte
+                            {
+                                IdVenta = reader["IdVenta"] != DBNull.Value ? Convert.ToInt32(reader["IdVenta"]) : 0,
+                                NombreVendedor = reader["NombreVendedor"] != DBNull.Value ? reader["NombreVendedor"].ToString()! : "Desconocido",
+                                Fecha = reader["FechaVenta"] != DBNull.Value ? Convert.ToDateTime(reader["FechaVenta"]) : DateTime.MinValue,
+                                Medicamento = reader["Medicamento"] != DBNull.Value ? reader["Medicamento"].ToString()! : "Sin Nombre",
+                                // AHORA C# RECOLECTA LAS UNIDADES VENDIDAS:
+                                UnidadesVendidas = reader["Cantidad"] != DBNull.Value ? Convert.ToInt32(reader["Cantidad"]) : 0,
+                                Monto = reader["Monto"] != DBNull.Value ? Convert.ToDecimal(reader["Monto"]) : 0.00m
+                            });
+                        }
+                    }
+                }
+            }
+            return lista;
+        }
+
         public List<Reporte> ObtenerReporteVentas(string nombreUsuario, string periodo, DateTime? fecha)
         {
             List<Reporte> lista = new List<Reporte>();
@@ -32,27 +60,25 @@ namespace CapaDeAccesoADatos_DAL
                 using (SqlCommand cmd = new SqlCommand("dbo.sp_ReporteVentas", conn))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@NombreUsuario", nombreUsuario);
-                    cmd.Parameters.AddWithValue("@Periodo", string.IsNullOrEmpty(periodo) ? (object)DBNull.Value : periodo);
+                    cmd.Parameters.AddWithValue("@NombreUsuario", string.IsNullOrEmpty(nombreUsuario) ? (object)DBNull.Value : nombreUsuario.Trim());
+                    cmd.Parameters.AddWithValue("@Periodo", string.IsNullOrEmpty(periodo) ? (object)DBNull.Value : periodo.Trim());
                     cmd.Parameters.AddWithValue("@Fecha", fecha.HasValue ? (object)fecha.Value : DBNull.Value);
 
                     conn.Open();
-                    
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            // Instanciamos el objeto vacío con tu constructor por defecto
-                            Reporte r = new Reporte();
-
-                            // Mapeamos directo a tus propiedades públicas
-                            r.IdVenta = Convert.ToInt32(reader["IdVenta"]);
-                            r.NombreVendedor = reader["NombreVendedor"].ToString();
-                            r.Fecha = Convert.ToDateTime(reader["FechaVenta"]);
-                            r.Medicamento = reader["Medicamento"].ToString();
-                            r.Monto = Convert.ToDecimal(reader["Monto"]);
-
-                            lista.Add(r);
+                            lista.Add(new Reporte
+                            {
+                                IdVenta = reader["IdVenta"] != DBNull.Value ? Convert.ToInt32(reader["IdVenta"]) : 0,
+                                NombreVendedor = reader["NombreVendedor"] != DBNull.Value ? reader["NombreVendedor"].ToString()! : "Desconocido",
+                                Fecha = reader["FechaVenta"] != DBNull.Value ? Convert.ToDateTime(reader["FechaVenta"]) : DateTime.MinValue,
+                                Medicamento = reader["Medicamento"] != DBNull.Value ? reader["Medicamento"].ToString()! : "Sin Nombre",
+                                // AHORA C# RECOLECTA LAS UNIDADES VENDIDAS:
+                                UnidadesVendidas = reader["Cantidad"] != DBNull.Value ? Convert.ToInt32(reader["Cantidad"]) : 0,
+                                Monto = reader["Monto"] != DBNull.Value ? Convert.ToDecimal(reader["Monto"]) : 0.00m
+                            });
                         }
                     }
                 }
@@ -60,47 +86,33 @@ namespace CapaDeAccesoADatos_DAL
             return lista;
         }
 
-        // 2. Método para los Badges de las Estadísticas (GenerarEstadistica)
         public Reporte ObtenerEstadisticasMedicamento(string nombreMedicamento, DateTime fechaInicio, DateTime fechaFin)
         {
-            Reporte r = null;
+            Reporte r = new Reporte();
 
             using (SqlConnection conn = new SqlConnection(Conexion.CadenaDeConexion))
+            using (SqlCommand cmd = new SqlCommand("dbo.sp_EstadisticasMedicamento", conn))
             {
-                using (SqlCommand cmd = new SqlCommand("dbo.sp_EstadisticasMedicamento", conn))
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@NombreMedicamento", string.IsNullOrEmpty(nombreMedicamento) ? (object)DBNull.Value : nombreMedicamento.Trim());
+                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
+
+                conn.Open();
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@NombreMedicamento", nombreMedicamento);
-                    cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
-                    cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
-
-                    conn.Open();
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    if (reader.Read())
                     {
-                        if (reader.Read())
-                        {
-                            r = new Reporte();
-
-                            // Mapeamos usando las propiedades exactas de tu clase Reporte
-                            r.Medicamento = reader["NombreMedicamento"].ToString();
-                            r.UnidadesVendidas = Convert.ToInt32(reader["CantidadUnidadesVendidas"]);
-                            r.PorcentajeVariacion = Convert.ToDecimal(reader["PorcentajeVsMesAnterior"]);
-                            r.StockDisponible = Convert.ToInt32(reader["UnidadesEnStock"]);
-                        }
+                        r.Medicamento = reader["NombreMedicamento"] != DBNull.Value ? reader["NombreMedicamento"].ToString()! : "Sin Nombre";
+                        r.UnidadesVendidas = reader["CantidadUnidadesVendidas"] != DBNull.Value ? Convert.ToInt32(reader["CantidadUnidadesVendidas"]) : 0;
+                        r.PorcentajeVariacion = reader["PorcentajeVsMesAnterior"] != DBNull.Value ? Convert.ToDecimal(reader["PorcentajeVsMesAnterior"]) : 0.00m;
+                        r.StockDisponible = reader["UnidadesEnStock"] != DBNull.Value ? Convert.ToInt32(reader["UnidadesEnStock"]) : 0;
                     }
                 }
             }
             return r;
         }
 
-        // metodo complementario exigido por la interfaz
-        public List<Reporte> ObtenerTodasLasVentas()
-        {
-            return new List<Reporte>();
-        }
-
-        // llama al SP que devuelve estadisticas de todos los medicamentos activos de una sola vez
         public List<Reporte> ObtenerEstadisticasTodosMedicamentos()
         {
             var lista = new List<Reporte>();
@@ -116,23 +128,26 @@ namespace CapaDeAccesoADatos_DAL
                     {
                         while (reader.Read())
                         {
-                            int unidadesActuales   = Convert.ToInt32(reader["CantidadUnidadesVendidas"]);
-                            int unidadesAnteriores = Convert.ToInt32(reader["UnidadesMesAnterior"]);
-                            int stock              = Convert.ToInt32(reader["UnidadesEnStock"]);
+                            int unidadesActuales = reader["CantidadUnidadesVendidas"] != DBNull.Value ? Convert.ToInt32(reader["CantidadUnidadesVendidas"]) : 0;
+                            int unidadesAnteriores = reader["UnidadesMesAnterior"] != DBNull.Value ? Convert.ToInt32(reader["UnidadesMesAnterior"]) : 0;
+                            int stock = reader["UnidadesEnStock"] != DBNull.Value ? Convert.ToInt32(reader["UnidadesEnStock"]) : 0;
 
-                            // calcular porcentaje de variacion en C# igual que el SP individual
                             decimal variacion = 0;
                             if (unidadesAnteriores > 0)
+                            {
                                 variacion = ((decimal)(unidadesActuales - unidadesAnteriores) / unidadesAnteriores) * 100;
+                            }
                             else if (unidadesActuales > 0)
+                            {
                                 variacion = 100;
+                            }
 
                             lista.Add(new Reporte
                             {
-                                Medicamento       = reader["NombreMedicamento"].ToString() ?? string.Empty,
-                                UnidadesVendidas  = unidadesActuales,
+                                Medicamento = reader["NombreMedicamento"] != DBNull.Value ? reader["NombreMedicamento"].ToString()! : "Sin Nombre",
+                                UnidadesVendidas = unidadesActuales,
                                 PorcentajeVariacion = variacion,
-                                StockDisponible   = stock
+                                StockDisponible = stock
                             });
                         }
                     }
@@ -142,9 +157,6 @@ namespace CapaDeAccesoADatos_DAL
         }
     }
 
-    // ====================================================================================
-    // PROXY
-    // ====================================================================================
     public class ReporteDALProxy : IReporteDAL
     {
         private static List<Reporte> _cacheVentas = null;
@@ -167,7 +179,6 @@ namespace CapaDeAccesoADatos_DAL
             return _cacheVentas;
         }
 
-        // estadisticas siempre van directo a la BD, sin cache (el stock cambia con cada venta)
         public List<Reporte> ObtenerEstadisticasTodosMedicamentos()
         {
             return _objetoReal.ObtenerEstadisticasTodosMedicamentos();

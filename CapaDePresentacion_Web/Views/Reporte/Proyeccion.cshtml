@@ -1,6 +1,5 @@
 ﻿@using System
 @using System.Collections.Generic
-@using System.Linq
 @using CapaDeEntidades
 
 @model IEnumerable<Reporte>
@@ -9,39 +8,20 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Análisis de Medicamento";
 
-    // Intentamos leer los valores enviados por la URL o el formulario
-    string medicamentoBuscado = "";
-    string fechaInicioStr = "";
-    string fechaFinStr = "";
-
-    if (Context.Request.Query.ContainsKey("medicamento"))
+    // helper: lee un parametro primero de query string y si no del form
+    string LeerParam(string key)
     {
-        medicamentoBuscado = Context.Request.Query["medicamento"].ToString();
-    }
-    else if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey("medicamento"))
-    {
-        medicamentoBuscado = Context.Request.Form["medicamento"].ToString();
+        if (Context.Request.Query.ContainsKey(key))
+            return Context.Request.Query[key].ToString();
+        if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey(key))
+            return Context.Request.Form[key].ToString();
+        return "";
     }
 
-    if (Context.Request.Query.ContainsKey("fechaInicio"))
-    {
-        fechaInicioStr = Context.Request.Query["fechaInicio"].ToString();
-    }
-    else if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey("fechaInicio"))
-    {
-        fechaInicioStr = Context.Request.Form["fechaInicio"].ToString();
-    }
+    string medicamentoBuscado = LeerParam("medicamento");
+    string fechaInicioStr = LeerParam("fechaInicio");
+    string fechaFinStr = LeerParam("fechaFin");
 
-    if (Context.Request.Query.ContainsKey("fechaFin"))
-    {
-        fechaFinStr = Context.Request.Query["fechaFin"].ToString();
-    }
-    else if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey("fechaFin"))
-    {
-        fechaFinStr = Context.Request.Form["fechaFin"].ToString();
-    }
-
-    // Solo mostramos las fechas y la tabla si el usuario ya buscó un medicamento
     bool mostrarAreaAvanzada = !string.IsNullOrEmpty(medicamentoBuscado);
 
     var ventasOrdenadas = new List<Reporte>();
@@ -54,17 +34,25 @@
         {
             ventasOrdenadas.Add(item);
         }
-        // Ordenamos por fecha para que el análisis evolutivo tenga coherencia cronológica
+        // ordenamos por fecha para que el analisis evolutivo sea cronologico
         ventasOrdenadas.Sort((a, b) => a.Fecha.CompareTo(b.Fecha));
     }
 }
 
 <div class="container mt-4">
 
+    @* ==================================================================== *@
+    @* 1. ALERTA DE ERROR DINÁMICA DEL SERVIDOR (BLL / Excepciones)         *@
+    @* ==================================================================== *@
     @if (ViewBag.Error != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i> @ViewBag.Error
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-start border-danger border-4 d-flex align-items-center mb-4" role="alert">
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+            </svg>
+            <div>
+                <strong>¡Atención!</strong> @ViewBag.Error
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
@@ -74,23 +62,43 @@
         <div class="card-header bg-white py-3">
             <h1 class="h4 mb-4 text-primary">Análisis de Rendimiento por Medicamento</h1>
 
-            <form method="post" action="@Url.Action("Proyeccion", "Reporte")">
+            @* ==================================================================== *@
+            @* 2. FORMULARIO CON INTERCEPTOR DE VALIDACIONES (HTML5 + BOOTSTRAP)     *@
+            @* ==================================================================== *@
+            <form method="post" action="@Url.Action("Proyeccion", "Reporte")" class="needs-validation" novalidate id="formProyeccion">
                 <div class="row align-items-end">
 
-                    <div class="col-md-4 mb-3 mb-md-0">
-                        <label class="fw-bold text-muted small text-uppercase">Medicamento a analizar</label>
-                        <input type="text" name="medicamento" class="form-control" placeholder="Ej. Paracetamol" value="@medicamentoBuscado" required />
+                    @* Campo Medicamento: requerido, sólo letras/espacios y tope de 50 caracteres *@
+                    <div class="col-md-4 mb-3 mb-md-0 position-relative">
+                        <label class="fw-bold text-muted small text-uppercase" for="medicamento">Medicamento a analizar</label>
+                        <input type="text" name="medicamento" id="medicamento" class="form-control"
+                               placeholder="Ej. Paracetamol" value="@medicamentoBuscado"
+                               pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-]+$" maxlength="50" required />
+                        <div class="invalid-feedback" style="font-size: 0.75rem;">
+                            Ingrese un nombre válido (letras/espacios, máx. 50 caracteres).
+                        </div>
                     </div>
 
                     @if (mostrarAreaAvanzada)
                     {
-                        <div class="col-md-3 mb-3 mb-md-0">
-                            <label class="fw-bold text-muted small text-uppercase">Fecha Inicio</label>
-                            <input type="date" name="fechaInicio" class="form-control" value="@fechaInicioStr" />
+                        @* Fecha Inicio (Tope de rango nativo 1900-2100) *@
+                        <div class="col-md-3 mb-3 mb-md-0 position-relative">
+                            <label class="fw-bold text-muted small text-uppercase" for="fechaInicio">Fecha Inicio</label>
+                            <input type="date" name="fechaInicio" id="fechaInicio" class="form-control"
+                                   min="1900-01-01" max="2100-12-31" value="@fechaInicioStr" required />
+                            <div class="invalid-feedback" id="errorFechaInicio" style="font-size: 0.75rem;">
+                                Seleccione una fecha inicial válida (Entre 1900 y 2100).
+                            </div>
                         </div>
-                        <div class="col-md-3 mb-3 mb-md-0">
-                            <label class="fw-bold text-muted small text-uppercase">Fecha Fin</label>
-                            <input type="date" name="fechaFin" class="form-control" value="@fechaFinStr" />
+
+                        @* Fecha Fin *@
+                        <div class="col-md-3 mb-3 mb-md-0 position-relative">
+                            <label class="fw-bold text-muted small text-uppercase" for="fechaFin">Fecha Fin</label>
+                            <input type="date" name="fechaFin" id="fechaFin" class="form-control"
+                                   min="1900-01-01" max="2100-12-31" value="@fechaFinStr" required />
+                            <div class="invalid-feedback" id="errorFechaFin" style="font-size: 0.75rem;">
+                                Seleccione una fecha final válida (Entre 1900 y 2100).
+                            </div>
                         </div>
                     }
 
@@ -123,8 +131,6 @@
                                 foreach (var venta in ventasOrdenadas)
                                 {
                                     existenDatos = true;
-
-                                    // Usamos la propiedad real de la entidad 'UnidadesVendidas' que unificamos con tu BLL
                                     int cantidadReal = venta.UnidadesVendidas > 0 ? venta.UnidadesVendidas : 1;
 
                                     totalCantidades += cantidadReal;
@@ -133,7 +139,6 @@
                                     string colorClase = "text-muted";
                                     string signo = "";
 
-                                    // Si existe un monto previo, calculamos la diferencia porcentual
                                     if (montoAnterior > 0)
                                     {
                                         porcentaje = ((venta.Monto - montoAnterior) / montoAnterior) * 100;
@@ -161,7 +166,6 @@
                                         </td>
                                     </tr>
 
-                                    // Guardamos el monto actual para el histórico de la siguiente fila
                                     montoAnterior = venta.Monto;
                                 }
 
@@ -200,3 +204,77 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const form = document.getElementById('formProyeccion');
+            const fechaInicio = document.getElementById('fechaInicio');
+            const fechaFin = document.getElementById('fechaFin');
+            const errorFechaInicio = document.getElementById('errorFechaInicio');
+            const errorFechaFin = document.getElementById('errorFechaFin');
+
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    let esValido = true;
+
+                    // --- FUNCIÓN HELPER PARA VALIDAR EL AÑO ---
+                    function validarAnioCoherente(inputElement, errorElement) {
+                        if (!inputElement || !inputElement.value) return true;
+
+                        const fechaObj = new Date(inputElement.value);
+                        const anio = fechaObj.getFullYear();
+
+                        // Captura si el año no tiene 4 dígitos o está fuera de un rango real
+                        if (isNaN(anio) || anio < 1900 || anio > 2100 || inputElement.value.split("-")[0].length !== 4) {
+                            inputElement.setCustomValidity("Año Invalido");
+                            errorElement.textContent = "Por favor, introduzca un año de 4 dígitos entre 1900 y 2100.";
+                            return false;
+                        }
+                        inputElement.setCustomValidity("");
+                        return true;
+                    }
+
+                    // 1. Validar coherencia de años de manera individual
+                    const anioInicioValido = validarAnioCoherente(fechaInicio, errorFechaInicio);
+                    const anioFinValido = validarAnioCoherente(fechaFin, errorFechaFin);
+
+                    if (!anioInicioValido || !anioFinValido) {
+                        esValido = false;
+                    }
+
+                    // 2. Validación cruzada de fechas (Solo si los años individuales pasaron el filtro)
+                    if (esValido && fechaInicio && fechaFin && fechaInicio.value && fechaFin.value) {
+                        const fInicio = new Date(fechaInicio.value);
+                        const fFin = new Date(fechaFin.value);
+
+                        if (fFin < fInicio) {
+                            esValido = false;
+                            fechaFin.setCustomValidity("Rango Invalido");
+                            errorFechaFin.textContent = "La fecha de fin no puede ser anterior a la fecha de inicio.";
+                        }
+                    }
+
+                    // Frena el Submit si cualquiera de las validaciones de negocio falló
+                    if (!form.checkValidity() || !esValido) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+
+                    form.classList.add('was-validated');
+                }, false);
+
+                // Resetea los custom errors al escribir de nuevo
+                if (fechaInicio && fechaFin) {
+                    fechaInicio.addEventListener('input', () => {
+                        fechaInicio.setCustomValidity("");
+                        fechaFin.setCustomValidity("");
+                    });
+                    fechaFin.addEventListener('input', () => {
+                        fechaFin.setCustomValidity("");
+                    });
+                }
+            }
+        });
+    </script>
+}
