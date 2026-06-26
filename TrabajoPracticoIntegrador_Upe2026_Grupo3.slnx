@@ -3,4 +3,5 @@
   <Project Path="CapaDeEntidades/CapaDeEntidades.csproj" />
   <Project Path="CapaDeLogicaDeNegocio_BLL/CapaDeLogicaDeNegocio_BLL.csproj" />
   <Project Path="CapaDePresentacion_Web/CapaDePresentacion_Web.csproj" />
+  <Project Path="Pruebas_unitarias/Pruebas_unitarias.csproj" />
 </Solution>

@@ -1,9 +1,12 @@
+using CapaDePresentacion_Web.Filters;
 using CapaDePresentacion_Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
 namespace CapaDePresentacion_Web.Controllers
 {
+    // home es accesible para cualquier usuario logueado, sin restriccion de rol
+    [SesionRequerida]
     public class HomeController : Controller
     {
         public IActionResult Index()
