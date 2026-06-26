@@ -425,3 +425,4 @@ CapaDePresentacion_Web/wwwroot/lib/bootstrap/
 CapaDePresentacion_Web/wwwroot/lib/jquery/
 CapaDePresentacion_Web/wwwroot/lib/jquery-validation/
 CapaDePresentacion_Web/wwwroot/lib/jquery-validation-unobtrusive/
+/CapaDePresentacion_Web/appsettings.Development.json

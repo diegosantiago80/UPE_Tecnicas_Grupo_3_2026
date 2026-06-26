@@ -1,86 +1,141 @@
-﻿@{
+@{
     // sin layout: el menu principal no debe verse hasta que el usuario este logueado
     Layout = null;
 }
 
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Login - Farmacia UPE</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ingresar - Farmacia UPE</title>
     <link rel="icon" type="image/x-icon" href="@Url.Content("~/favicon.ico?")" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <style>
-            body { background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; }
-            .card-login { width: 100%; max-width: 400px; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); background: white; }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        .login-header {
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            padding: 2rem;
+            text-align: center;
+            color: white;
+        }
+        .login-body {
+            background: white;
+            padding: 2rem;
+        }
+        .table-usuarios { font-size: 0.75rem; }
     </style>
 </head>
 <body>
-    <div class="card-login">
-        <h3 class="text-center mb-4">✚ Farmacia UPE</h3>
-        
-<form action="/Account/Login" method="post">
+    <div class="login-card">
 
-    <div class="mb-3">
-        <label class="form-label">Usuario</label>
-        @* el name "user" tiene que coincidir con el parametro del action en AccountController *@
-        <input type="text" name="user" class="form-control" placeholder="ej: deposito" required />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Contraseña</label>
-        @* el name "pass" tiene que coincidir con el parametro del action en AccountController *@
-        <input type="password" name="pass" class="form-control" placeholder="123" required />
-    </div>
-
-    @if (ViewBag.Error != null)
-    {
-        <div class="alert alert-danger p-2 small">
-            @ViewBag.Error
+        <div class="login-header">
+            <i class="bi bi-capsule-pill" style="font-size: 2.5rem;"></i>
+            <h4 class="mt-2 mb-0 fw-bold">Farmacia UPE</h4>
+            <p class="mb-0 opacity-75 small">Sistema de Gestión</p>
         </div>
-    }
 
-    <button type="submit" class="btn btn-primary w-full">Ingresar</button>
-</form>
+        <div class="login-body">
+            <form action="/Account/Login" method="post">
 
-        <div class="mt-4 pt-3 border-top">
-    <p class="text-center text-muted small mb-2"><strong>Usuarios para la Entrega:</strong></p>
-    <div class="table-responsive">
-        <table class="table table-sm table-bordered text-center" style="font-size: 0.75rem;">
-            <thead class="table-light">
-                <tr>
-                    <th>Usuario</th>
-                    <th>Rol / Perfil</th>
-                    <th>Clave</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><code class="text-primary">admin</code></td>
-                    <td>Administrador</td>
-                    <td>123</td>
-                </tr>
-                <tr>
-                    <td><code class="text-primary">vendedor</code></td>
-                    <td>Vendedor</td>
-                    <td>123</td>
-                </tr>
-                <tr>
-                    <td><code class="text-primary">deposito</code></td>
-                    <td>Encargado</td>
-                    <td>123</td>
-                </tr>
-                <tr>
-                    <td><code class="text-primary">gerente</code></td>
-                    <td>Gerente</td>
-                    <td>123</td>
-                </tr>
-            </tbody>
-        </table>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted small text-uppercase">Usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-person text-muted"></i>
+                        </span>
+                        <input type="text" name="user" class="form-control border-start-0"
+                               placeholder="ej: admin" required autocomplete="username" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted small text-uppercase">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-lock text-muted"></i>
+                        </span>
+                        <input type="password" name="pass" class="form-control border-start-0"
+                               placeholder="••••••" required autocomplete="current-password" />
+                    </div>
+                </div>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger py-2 small d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        @ViewBag.Error
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+                </button>
+            </form>
+
+            <div class="mt-4 pt-3 border-top">
+                <div class="text-center">
+                    <button class="btn btn-link btn-sm text-muted text-decoration-none p-0"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#hintUsuarios"
+                            aria-expanded="false">
+                        <i class="bi bi-question-circle me-1"></i>¿Necesitás ayuda para ingresar?
+                    </button>
+                </div>
+                <div class="collapse mt-3" id="hintUsuarios">
+                    <table class="table table-sm table-bordered text-center table-usuarios mb-1">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Perfil</th>
+                                <th>Clave</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code class="text-warning">admin</code></td>
+                                <td>Administrador</td>
+                                <td><code>123</code></td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-success">vendedor</code></td>
+                                <td>Vendedor</td>
+                                <td><code>123</code></td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-primary">deposito</code></td>
+                                <td>Encargado</td>
+                                <td><code>123</code></td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-info">gerente</code></td>
+                                <td>Gerente</td>
+                                <td><code>123</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="text-center text-muted" style="font-size: 0.65rem;">
+                        * El menú se adapta automáticamente según el perfil.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
-    <p class="text-center text-danger" style="font-size: 0.65rem;">
-        * Solo se visualizaran las opciones permitidas según el usuario.
-    </p>
-</div>
-    </div>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

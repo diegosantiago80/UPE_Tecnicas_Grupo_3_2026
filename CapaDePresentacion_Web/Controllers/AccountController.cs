@@ -37,5 +37,13 @@ namespace CapaDePresentacion_Web.Controllers
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
+
+        // destino cuando un usuario logueado intenta acceder a una seccion sin permiso
+        public IActionResult AccesoDenegado()
+        {
+            string rol = HttpContext.Session.GetString("NombreRol") ?? "desconocido";
+            ViewBag.Rol = rol;
+            return View();
+        }
     }
 }

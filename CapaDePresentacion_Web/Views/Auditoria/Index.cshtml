@@ -1,0 +1,131 @@
+﻿@model IEnumerable<CapaDeEntidades.Auditoria>
+@{
+    ViewData["Title"] = "Consultar Auditoría";
+    string buscarUsuario = ViewBag.BuscarUsuario ?? "";
+    string periodo = ViewBag.Periodo ?? "";
+    string fechaFiltro = ViewBag.FechaFiltro ?? "";
+
+    bool selDiaria = periodo == "diaria";
+    bool selMensual = periodo == "mensual";
+    bool selAnual = periodo == "anual";
+    bool hayFiltros = !string.IsNullOrEmpty(buscarUsuario)
+                   || !string.IsNullOrEmpty(periodo)
+                   || !string.IsNullOrEmpty(fechaFiltro);
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-1" style="border-radius: 15px;">
+
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
+             style="padding: 12px 20px; border-top-left-radius: 15px; border-top-right-radius: 15px;">
+            <h5 class="mb-0 fw-bold">Consultar Auditoría</h5>
+
+            <form method="get" class="d-flex gap-2 mb-0" id="formFiltro">
+                <input type="text"
+                       name="buscarUsuario"
+                       id="buscarUsuario"
+                       class="form-control w-auto"
+                       placeholder="Buscar usuario..."
+                       title="Filtrar por nombre de usuario"
+                       maxlength="10"
+                       value="@buscarUsuario" />
+
+                <select name="periodo" id="periodoSelect" class="form-select w-auto">
+                    <option value="">-- Todos los períodos --</option>
+                    <option value="diaria" selected="@selDiaria">Diaria</option>
+                    <option value="mensual" selected="@selMensual">Mensual</option>
+                    <option value="anual" selected="@selAnual">Anual</option>
+                </select>
+
+                <div class="input-group w-auto">
+                    <input type="date"
+                           name="fechaFiltro"
+                           id="fechaFiltro"
+                           class="form-control"
+                           style="min-width: 160px;"
+                           title="Seleccionar fecha específica"
+                           value="@fechaFiltro" />
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            id="btnLimpiarFecha"
+                            title="Limpiar fecha">
+                        ✕
+                    </button>
+                </div>
+
+                <button type="submit" class="btn btn-dark">
+                    <i class="bi bi-search me-1"></i>Buscar
+                </button>
+
+                @if (hayFiltros)
+                {
+                    <a href="@Url.Action("Index", "Auditoria")" class="btn btn-outline-secondary" title="Limpiar todos los filtros">
+                        Limpiar
+                    </a>
+                }
+            </form>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Usuario</th>
+                            <th>Perfil</th>
+                            <th>Sector</th>
+                            <th>Acción Realizada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            int fila = 0;
+                            foreach (var log in Model)
+                            {
+                                string bgFila = fila % 2 == 0 ? "background-color: #ffffff;" : "background-color: #fffbea;";
+                                fila++;
+                                <tr style="@bgFila">
+                                    <td class="text-center text-muted">@log.FechaHora.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center text-muted">@log.FechaHora.ToString("HH:mm") hs</td>
+                                    <td class="text-center fw-semibold text-dark">@log.Usuario</td>
+                                    <td class="text-center fw-bold text-dark">@log.Perfil</td>
+                                    <td class="text-center text-dark">@log.Modulo</td>
+                                    <td class="text-start">@log.Accion</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <div class="mb-2">
+                                        <i class="bi bi-journal-x fs-2 text-secondary"></i>
+                                    </div>
+                                    No se encontraron registros para los filtros seleccionados.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('btnLimpiarFecha').addEventListener('click', function () {
+            document.getElementById('fechaFiltro').value = '';
+        });
+
+        document.getElementById('buscarUsuario').addEventListener('input', function () {
+            this.value = this.value.replace(/[^A-Za-z0-9]/g, '');
+        });
+    </script>
+}
+
+ 

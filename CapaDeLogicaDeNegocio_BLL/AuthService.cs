@@ -1,8 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Data;
-using Microsoft.Data.SqlClient;
-using System.Linq;
 using CapaDeEntidades;
 using CapaDeAccesoADatos_DAL;
 
@@ -14,6 +10,7 @@ namespace CapaDeLogicaDeNegocio_BLL
     {
         private static readonly AuthService _instance = new AuthService();
         private readonly Dictionary<int, PerfilComposite> _perfilesPorId;
+        private readonly AutenticacionDAL _autenticacionDAL = new AutenticacionDAL();
 
         private AuthService()
         {
@@ -23,92 +20,62 @@ namespace CapaDeLogicaDeNegocio_BLL
 
         public static AuthService Instance => _instance;
 
-        private void ConfigurarPerfiles()
+        // invocado desde la capa de negocio cuando se guarda o elimina un perfil
+        public void RecargarPerfilesDesdeBaseDeDatos()
         {
-            var gestionarUsuarios = new PermisoSimple { Nombre = "GestionarUsuarios" };
-            var configurarPerfiles = new PermisoSimple { Nombre = "ConfigurarPerfiles" };
-            var registrarVenta = new PermisoSimple { Nombre = "RegistrarVenta" };
-            var gestionarClientes = new PermisoSimple { Nombre = "GestionarClientes" };
-            var controlStock = new PermisoSimple { Nombre = "ControlStock" };
-            var registrarCompra = new PermisoSimple { Nombre = "RegistrarCompra" };
-            var gestionarMedicamentos = new PermisoSimple { Nombre = "GestionarMedicamentos" };
-            var gestionarLaboratorios = new PermisoSimple { Nombre = "GestionarLaboratorios" };
-            var verReportes = new PermisoSimple { Nombre = "VerReporte" };
-            var generarEstadisticas = new PermisoSimple { Nombre = "GenerarEstadisticas" };
-            var generarProyeccion = new PermisoSimple { Nombre = "GenerarProyeccion" };
-
-            var admin = new PerfilComposite { Nombre = "Administrador" };
-            admin.Agregar(gestionarUsuarios);
-            admin.Agregar(configurarPerfiles);
-            _perfilesPorId[1] = admin;
-
-            var vendedor = new PerfilComposite { Nombre = "Vendedor" };
-            vendedor.Agregar(registrarVenta);
-            vendedor.Agregar(gestionarClientes);
-            _perfilesPorId[2] = vendedor;
-
-            var encargado = new PerfilComposite { Nombre = "Encargado" };
-            encargado.Agregar(controlStock);
-            encargado.Agregar(registrarCompra);
-            encargado.Agregar(gestionarMedicamentos);
-            encargado.Agregar(gestionarLaboratorios);
-            _perfilesPorId[3] = encargado;
-
-            var gerente = new PerfilComposite { Nombre = "Gerente" };
-            gerente.Agregar(verReportes);
-            gerente.Agregar(generarEstadisticas);
-            gerente.Agregar(generarProyeccion);
-            _perfilesPorId[4] = gerente;
+            ConfigurarPerfiles();
         }
 
-        // valida credenciales contra la base de datos usando el sp de kiara
-        public UsuarioDatos? ValidarUsuario(string? username, string? password)
+        // lee los datos de la BD y mapea dinamicamente los componentes del patron composite
+        private void ConfigurarPerfiles()
         {
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) return null;
+            _perfilesPorId.Clear();
+            var perfilDal = new PerfilDAL();
+            var perfilesBD = perfilDal.ObtenerTodos();
 
-            using (SqlConnection con = new SqlConnection(Conexion.CadenaDeConexion))
+            foreach (var perf in perfilesBD)
             {
-                using (SqlCommand cmd = new SqlCommand("SP_ValidarUsuario", con))
+                // crea la raiz del composite con la descripcion del rol
+                var composite = new PerfilComposite { Nombre = perf.Descripcion };
+
+                // string de permisos separados por comas
+                if (!string.IsNullOrWhiteSpace(perf.PermisosAsignados))
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@Usuario", username!.Trim());
-                    cmd.Parameters.AddWithValue("@Contrasena", password!.Trim());
-
-                    try
+                    var permisos = perf.PermisosAsignados.Split(',');
+                    foreach (var p in permisos)
                     {
-                        con.Open();
-                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        if (!string.IsNullOrWhiteSpace(p))
                         {
-                            if (dr.Read())
-                            {
-                                if (Convert.ToBoolean(dr["Activo"]))
-                                {
-                                    int idUsuario = Convert.ToInt32(dr["IdUsuario"]);
-                                    int idPerfil = Convert.ToInt32(dr["IdPerfil"]);
-                                    string nombre = dr["Nombre"]?.ToString() ?? string.Empty;
-                                    string apellido = dr["Apellido"]?.ToString() ?? string.Empty;
-                                    string user = dr["NombreUsuario"]?.ToString() ?? string.Empty;
-                                    string dni = dr["DNI"]?.ToString() ?? string.Empty;
-                                    string rol = ObtenerPerfilPorId(idPerfil)?.Nombre ?? "Desconocido";
-
-                                    return new UsuarioDatos
-                                    {
-                                        IdUsuario = idUsuario,
-                                        User = user,
-                                        Pass = string.Empty,
-                                        NombreReal = $"{nombre} {apellido}".Trim(),
-                                        NombreRol = rol,
-                                        IdPerfil = idPerfil,
-                                        Dni = dni
-                                    };
-                                }
-                            }
+                            // agrega cada permiso como una hoja simple dentro del composite
+                            composite.Agregar(new PermisoSimple { Nombre = p.Trim() });
                         }
                     }
-                    catch { return null; }
                 }
+                _perfilesPorId[perf.IdPerfil] = composite;
             }
-            return null;
+        }
+
+        // delega la validacion de credenciales al DAL y arma el objeto de sesion
+        public UsuarioDatos? ValidarUsuario(string? ingreso, string? clave)
+        {
+            if (string.IsNullOrWhiteSpace(ingreso) || string.IsNullOrWhiteSpace(clave)) return null;
+
+            var resultado = _autenticacionDAL.ValidarCredenciales(ingreso, clave);
+
+            if (!resultado.encontrado || !resultado.activo) return null;
+
+            string rol = ObtenerPerfilPorId(resultado.idPerfil)?.Nombre ?? "Desconocido";
+
+            return new UsuarioDatos
+            {
+                IdUsuario  = resultado.idUsuario,
+                Ingreso       = resultado.nombreUsuario,
+                Clave       = string.Empty,
+                NombreReal = $"{resultado.nombre} {resultado.apellido}".Trim(),
+                NombreRol  = rol,
+                IdPerfil   = resultado.idPerfil,
+                Dni        = resultado.dni
+            };
         }
 
         public PerfilComposite? ObtenerPerfilPorId(int idPerfil) => _perfilesPorId.GetValueOrDefault(idPerfil);
@@ -117,16 +84,5 @@ namespace CapaDeLogicaDeNegocio_BLL
         {
             return idPerfil.HasValue && ObtenerPerfilPorId(idPerfil.Value)?.TienePermiso(nombrePermiso) == true;
         }
-    }
-
-    public class UsuarioDatos
-    {
-        public int IdUsuario { get; set; }
-        public string User { get; set; } = string.Empty;
-        public string Pass { get; set; } = string.Empty;
-        public string NombreReal { get; set; } = string.Empty;
-        public string NombreRol { get; set; } = string.Empty;
-        public int IdPerfil { get; set; }
-        public string Dni { get; set; } = string.Empty;
     }
 }

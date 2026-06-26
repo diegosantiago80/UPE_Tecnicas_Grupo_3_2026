@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace CapaDeEntidades
 {
@@ -11,77 +11,15 @@ namespace CapaDeEntidades
         private string _telefono = string.Empty;
         private string _email = string.Empty;
 
-        public int IdPersona
-        {
-            get
-            {
-                return _idPersona;
-            }
-            set
-            {
-                _idPersona = value;
-            }
-        }
+        public int IdPersona { get => _idPersona; set => _idPersona = value; }
+        public string Nombre { get => _nombre; set => _nombre = value; }
+        public string Apellido { get => _apellido; set => _apellido = value; }
+        public string Dni { get => _dni; set => _dni = value; }
+        public string Telefono { get => _telefono; set => _telefono = value; }
+        public string Email { get => _email; set => _email = value; }
 
-        public string Nombre
-        {
-            get
-            {
-                return _nombre;
-            }
-            set
-            {
-                _nombre = value;
-            }
-        }
-
-        public string Apellido
-        {
-            get
-            {
-                return _apellido;
-            }
-            set
-            {
-                _apellido = value;
-            }
-        }
-
-        public string Dni
-        {
-            get
-            {
-                return _dni;
-            }
-            set
-            {
-                _dni = value;
-            }
-        }
-
-        public string Telefono
-        {
-            get
-            {
-                return _telefono;
-            }
-            set
-            {
-                _telefono = value;
-            }
-        }
-
-        public string Email
-        {
-            get
-            {
-                return _email;
-            }
-            set
-            {
-                _email = value;
-            }
-        }
+        // propiedad calculada disponible para todas las subclases
+        public string NombreCompleto { get => $"{_nombre} {_apellido}".Trim(); }
 
         public Persona() { }
 
