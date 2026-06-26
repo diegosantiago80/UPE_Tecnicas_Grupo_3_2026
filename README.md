@@ -107,10 +107,15 @@ Scripts/7_Farmacia_DB.Script_sql.sql     -- Script complementario
 
 **3. Compilar y ejecutar** desde Visual Studio (F5) o con:
 
+
 ```bash
 cd CapaDePresentacion_Web
 dotnet run
 ```
+**Restaurar librerías de frontend** (Bootstrap, jQuery):
+
+cd CapaDePresentacion_Web
+libman restore
 
 ---
 
