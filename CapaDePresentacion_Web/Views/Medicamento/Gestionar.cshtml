@@ -45,14 +45,7 @@
                             <option value="">-- Seleccionar --</option>
                             @foreach (var lab in laboratorios)
                             {
-                                if (lab.IdLaboratorio == Model.IdLaboratorio)
-                                {
-                                    <option value="@lab.IdLaboratorio" selected>@lab.RazonSocial</option>
-                                }
-                                else
-                                {
-                                    <option value="@lab.IdLaboratorio">@lab.RazonSocial</option>
-                                }
+                                <option value="@lab.IdLaboratorio" selected="@(lab.IdLaboratorio == Model.IdLaboratorio)">@lab.RazonSocial</option>
                             }
                         </select>
                     </div>
@@ -62,14 +55,7 @@
                             <option value="">-- Seleccionar --</option>
                             @foreach (var cat in categorias)
                             {
-                                if (cat.IdCategoria == Model.IdCategoria)
-                                {
-                                    <option value="@cat.IdCategoria" selected>@cat.Nombre</option>
-                                }
-                                else
-                                {
-                                    <option value="@cat.IdCategoria">@cat.Nombre</option>
-                                }
+                                <option value="@cat.IdCategoria" selected="@(cat.IdCategoria == Model.IdCategoria)">@cat.Nombre</option>
                             }
                         </select>
                     </div>

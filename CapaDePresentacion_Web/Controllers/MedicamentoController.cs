@@ -1,16 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using CapaDeLogicaDeNegocio_BLL;
 using CapaDeEntidades;
+using CapaDePresentacion_Web.Filters;
 using System.Collections.Generic;
 
 namespace CapaPresentacion_Web.Controllers
 {
+    // stock y medicamentos: solo el encargado
+    [SesionRequerida("Encargado")]
     public class MedicamentoController : Controller
     {
         // factory: creacion centralizada de servicios BLL
         private readonly MedicamentoBLL _medicamentoBLL = BLLFactory.CrearMedicamentoBLL();
         private readonly LaboratorioBLL _laboratorioBLL = BLLFactory.CrearLaboratorioBLL();
-        private readonly CategoriaDALBLL _categoriaBLL  = BLLFactory.CrearCategoriaBLL();
+        private readonly CategoriaBLL _categoriaBLL  = BLLFactory.CrearCategoriaBLL();
 
         public IActionResult Index(bool soloCriticos = false)
         {
@@ -27,7 +31,8 @@ namespace CapaPresentacion_Web.Controllers
             }
             else
             {
-                lista = _medicamentoBLL.ObtenerTodos();
+                // solo activos — los dados de baja quedan en historicos de compras/ventas
+                lista = _medicamentoBLL.ObtenerActivos();
                 ViewData["Titulo"] = "Panel de Control de Stock";
             }
 
@@ -47,10 +52,12 @@ namespace CapaPresentacion_Web.Controllers
         {
             (bool exito, string mensaje) resultado;
 
+            int idLogueado = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
+
             if (medicamento.IdMedicamento == 0)
-                resultado = _medicamentoBLL.Agregar(medicamento);
+                resultado = _medicamentoBLL.Agregar(medicamento, idLogueado);
             else
-                resultado = _medicamentoBLL.Modificar(medicamento);
+                resultado = _medicamentoBLL.Modificar(medicamento, idLogueado);
 
             if (resultado.exito)
             {
@@ -66,7 +73,9 @@ namespace CapaPresentacion_Web.Controllers
         [HttpPost]
         public IActionResult DarDeBaja(int id)
         {
-            var resultado = _medicamentoBLL.DarDeBaja(id);
+            int idLogueado = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
+
+            var resultado = _medicamentoBLL.DarDeBaja(id, idLogueado);
             TempData[resultado.exito ? "Exito" : "Error"] = resultado.mensaje;
             return RedirectToAction("Index");
         }

@@ -43,7 +43,8 @@ namespace CapaDeLogicaDeNegocio_BLL
     // en una entrega posterior esto podria escribir en una tabla de alertas en la bd
     public class AlertaStockObservador : IStockObservador
     {
-        // lista de alertas activas accesible desde los controllers
+        // lock para acceso seguro desde multiples requests concurrentes
+        private static readonly object _lock = new object();
         public static readonly List<string> AlertasActivas = new List<string>();
 
         public void Notificar(Medicamento medicamento)
@@ -51,8 +52,11 @@ namespace CapaDeLogicaDeNegocio_BLL
             string alerta = $"Stock critico: {medicamento.Nombre} tiene {medicamento.StockActual} unidades (minimo: {medicamento.StockMinimo})";
 
             // evitar alertas duplicadas para el mismo medicamento
-            if (!AlertasActivas.Contains(alerta))
-                AlertasActivas.Add(alerta);
+            lock (_lock)
+            {
+                if (!AlertasActivas.Contains(alerta))
+                    AlertasActivas.Add(alerta);
+            }
         }
     }
 }
