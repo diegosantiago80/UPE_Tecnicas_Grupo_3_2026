@@ -1,47 +1,102 @@
 ﻿@using System
 @using System.Collections.Generic
-@using System.Linq
-@using CapaDeEntidades;
+@using CapaDeEntidades
 
 @model IEnumerable<Reporte>
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Reporte de Ventas";
+    ViewData["Title"] = "Historial de Reportes";
 
-    decimal totalVentas = 0;
-    bool hayVentas = false;
+    var culturaAR = new System.Globalization.CultureInfo("es-AR");
 
-    if (Model != null)
+    string LeerParam(string key)
     {
-        foreach (var v in Model)
-        {
-            totalVentas += v.Monto; // Sumamos el monto usando el bucle tradicional
-            hayVentas = true;
-        }
+        if (Context.Request.Query.ContainsKey(key))
+            return Context.Request.Query[key].ToString();
+        if (Context.Request.HasFormContentType && Context.Request.Form.ContainsKey(key))
+            return Context.Request.Form[key].ToString();
+        return "";
+    }
+
+    string usuarioBuscado = LeerParam("buscarVendedor");
+    string fechaInicioStr = LeerParam("fechaFiltro");
+    string fechaFinStr = LeerParam("periodo");
+    string tipoFiltro = LeerParam("tipoFiltro");
+
+    var reportesFiltrados = Model ?? new List<Reporte>();
+
+    bool esPost = Context.Request.Method == "POST";
+    bool hayErrorBackend = ViewBag.ErrorMessage != null || ViewBag.Error != null;
+
+    string ObtenerClaseValidacion(string valorCampo, bool forzarError = false)
+    {
+        if (forzarError) return "is-invalid";
+        if (!esPost) return "";
+        if (hayErrorBackend) return "";
+        return !string.IsNullOrEmpty(valorCampo) ? "is-valid" : "";
     }
 }
 
 <div class="container mt-4">
 
+    @if (hayErrorBackend)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-start border-danger border-4 d-flex align-items-center mb-4" role="alert">
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+            </svg>
+            <div>
+                <strong>¡Atención!</strong> @(ViewBag.ErrorMessage ?? ViewBag.Error)
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h1 class="h4 mb-4 text-primary">Filtro General de Reportes de Ventas</h1>
 
-        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-            <h1 class="h4 mb-0 text-primary">Reporte de Ventas</h1>
-
-            <form method="get" class="d-flex gap-2 mb-0">
-                <input type="text" name="buscarVendedor" class="form-control w-auto" id="buscarVendedor" placeholder="Buscar vendedor..." title="Buscar por vendedor" />
-
-                <select name="periodo" class="form-select w-auto" id="periodoSelect">
-                    <option value="">-- Todos los períodos --</option>
-                    <option value="diaria">Diaria</option>
-                    <option value="semanal">Semanal</option>
-                    <option value="mensual">Mensual</option>
+            <div class="mb-3 position-relative">
+                <select id="selectorTipo" name="tipoFiltro" class="form-select @ObtenerClaseValidacion(tipoFiltro, ViewBag.ErrorPeriodo == true)" onchange="gestionarCampos()">
+                    <option value="" selected="@(string.IsNullOrEmpty(tipoFiltro) ? "selected" : null)">-- Seleccione Período --</option>
+                    <option value="diaria" selected="@(tipoFiltro == "diaria" ? "selected" : null)">Diario</option>
+                    <option value="semanal" selected="@(tipoFiltro == "semanal" ? "selected" : null)">Semanal</option>
+                    <option value="mensual" selected="@(tipoFiltro == "mensual" ? "selected" : null)">Mensual</option>
                 </select>
+                <div class="invalid-feedback">Debe seleccionar un período obligatoriamente.</div>
+            </div>
 
-                <input type="date" name="fechaFiltro" class="form-control w-auto" id="fechaFiltro" title="Seleccionar fecha específica" />
+            <form method="post" action="@Url.Action("VerReporte", "Reporte")" class="needs-validation" novalidate id="formReportes">
+                <div class="row align-items-end">
+                    <div class="col-md-3 mb-3">
+                        <label class="fw-bold text-muted small text-uppercase">Vendedor</label>
+                        <input type="text" name="buscarVendedor" id="nombreUsuario"
+                               class="form-control @ObtenerClaseValidacion(usuarioBuscado, ViewBag.ErrorVendedor == true)"
+                               value="@usuarioBuscado" maxlength="50" placeholder="Máx. 50 caracteres" />
+                        <div class="invalid-feedback">El nombre del vendedor es inválido o excede 50 caracteres.</div>
+                    </div>
 
-                <button type="submit" class="btn btn-primary">Buscar</button>
+                    <div class="col-md-3 mb-3" id="divFechaInicio" style="display:none;">
+                        <label class="fw-bold text-muted small text-uppercase" id="lblFechaInicio">Fecha Inicio</label>
+                        <input type="date" id="fechaInicio"
+                               class="form-control @ObtenerClaseValidacion(fechaInicioStr, ViewBag.ErrorFecha == true)"
+                               value="@fechaInicioStr" />
+                        <div class="invalid-feedback" id="errorFechaInicio"></div>
+                    </div>
+
+                    <div class="col-md-3 mb-3" id="divFechaFin" style="display:none;">
+                        <label class="fw-bold text-muted small text-uppercase">Fecha Fin</label>
+                        <input type="date" id="fechaFin"
+                               class="form-control @ObtenerClaseValidacion(fechaFinStr, ViewBag.ErrorFecha == true)"
+                               value="@fechaFinStr" />
+                        <div class="invalid-feedback" id="errorFechaFin"></div>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Buscar</button>
+                    </div>
+                </div>
             </form>
         </div>
 
@@ -50,48 +105,36 @@
                 <table class="table table-hover table-striped mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>ID Venta</th>
-                            <th>Vendedor</th>
-                            <th>Fecha de Venta</th>
-                            <th>Medicamento / Artículo</th>
-                            <th class="text-end">Monto</th>
+                            <th>Fecha</th>
+                            <th>Usuario / Vendedor</th>
+                            <th>Medicamento / Detalle</th>
+                            <th class="text-center">Unidades</th>
+                            <th class="text-end">Monto Total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if (hayVentas)
-                        {
-                            foreach (var venta in Model)
-                            {
-                                <tr>
-                                    <td>#@venta.IdVenta</td>
-                                    <td>@venta.NombreVendedor</td>
-                                    <td>@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td class="fw-bold text-secondary">@venta.Medicamento</td>
-                                    <td class="text-end fw-bold text-success">@venta.Monto.ToString("C")</td>
-                                </tr>
-                            }
-                        }
-                        else
+                        @if (!reportesFiltrados.Any())
                         {
                             <tr>
                                 <td colspan="5" class="text-center text-muted py-4">
-                                    No se encontraron ventas de medicamentos para esta fecha/período.
+                                    No se encontraron registros que coincidan con los filtros aplicados.
                                 </td>
                             </tr>
                         }
+                        else
+                        {
+                            foreach (var r in reportesFiltrados)
+                            {
+                                <tr>
+                                    <td>@r.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@(string.IsNullOrEmpty(r.NombreVendedor) ? "Sistema" : r.NombreVendedor)</td>
+                                    <td>@r.Medicamento</td>
+                                    <td class="text-center">@r.UnidadesVendidas</td>
+                                    <td class="text-end fw-bold text-success">@r.Monto.ToString("C", culturaAR)</td>
+                                </tr>
+                            }
+                        }
                     </tbody>
-
-                    @if (hayVentas)
-                    {
-                        <tfoot class="table-light">
-                            <tr>
-                                <td colspan="4" class="text-end fw-bold py-3">Total Facturado:</td>
-                                <td class="text-end fw-bold fs-5 py-3 text-primary">
-                                    @totalVentas.ToString("C")
-                                </td>
-                            </tr>
-                        </tfoot>
-                    }
                 </table>
             </div>
         </div>
@@ -100,23 +143,157 @@
 
 @section Scripts {
     <script>
+        function gestionarCampos() {
+            const tipo = document.getElementById('selectorTipo').value;
+            const fInicio = document.getElementById('fechaInicio');
+            const fFin = document.getElementById('fechaFin');
+            const lblInicio = document.getElementById('lblFechaInicio');
+
+            fInicio.name = "";
+            fFin.name = "";
+
+            fInicio.classList.remove('is-invalid', 'is-valid');
+            fFin.classList.remove('is-invalid', 'is-valid');
+
+            document.getElementById('divFechaInicio').style.display = "none";
+            document.getElementById('divFechaFin').style.display = "none";
+
+            if (tipo === "diaria") {
+                fInicio.name = "fechaFiltro";
+                lblInicio.textContent = "Fecha";
+                document.getElementById('divFechaInicio').style.display = "block";
+            } else if (tipo === "semanal" || tipo === "mensual") {
+                fInicio.name = "fechaFiltro";
+                fFin.name = "periodo";
+                lblInicio.textContent = "Fecha Inicio";
+                document.getElementById('divFechaInicio').style.display = "block";
+                document.getElementById('divFechaFin').style.display = "block";
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
+            const form = document.getElementById('formReportes');
+            const fInicio = document.getElementById('fechaInicio');
+            const fFin = document.getElementById('fechaFin');
+            const vendedor = document.getElementById('nombreUsuario');
+            const selectorTipo = document.getElementById('selectorTipo');
 
-            const periodo = urlParams.get('periodo');
-            if (periodo) {
-                document.getElementById('periodoSelect').value = periodo;
+            function showError(input, errorDivId, message) {
+                input.classList.remove('is-valid');
+                input.classList.add('is-invalid');
+                const errorDiv = document.getElementById(errorDivId) || input.nextElementSibling;
+                if (errorDiv && errorDiv.classList.contains('invalid-feedback')) {
+                    errorDiv.textContent = message;
+                }
             }
 
-            const fechaFiltro = urlParams.get('fechaFiltro');
-            if (fechaFiltro) {
-                document.getElementById('fechaFiltro').value = fechaFiltro;
+            function setValid(input) {
+                if (input.value.trim() !== '') {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                }
             }
 
-            const buscarVendedor = urlParams.get('buscarVendedor');
-            if (buscarVendedor) {
-                document.getElementById('buscarVendedor').value = buscarVendedor;
-            }
+            const inputs = [fInicio, fFin, vendedor, selectorTipo];
+            inputs.forEach(input => {
+                input.addEventListener('input', () => input.classList.remove('is-invalid', 'is-valid'));
+                input.addEventListener('change', () => input.classList.remove('is-invalid', 'is-valid'));
+            });
+
+            form.addEventListener('submit', function(event) {
+                let isValid = true;
+                const tipo = selectorTipo.value;
+
+                inputs.forEach(el => el.classList.remove('is-invalid', 'is-valid'));
+
+                // =======================================================================
+                // NUEVA REGLA: Si hay vendedor, obligar a elegir el periodo desplegable
+                // =======================================================================
+                if (vendedor.value.trim() !== '' && !tipo) {
+                    showError(selectorTipo, null, 'Debe seleccionar un período si ingresa un vendedor.');
+                    isValid = false;
+                }
+
+                // Validación 1: Vendedor
+                if (vendedor.value.trim().length > 50) {
+                    showError(vendedor, null, 'El nombre no puede exceder los 50 caracteres.');
+                    isValid = false;
+                } else if (vendedor.value.trim() !== '') {
+                    setValid(vendedor);
+                }
+
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+
+                // Validación 2: Fechas
+                if (tipo === "diaria") {
+                    setValid(selectorTipo);
+                    if (!fInicio.value) {
+                        showError(fInicio, 'errorFechaInicio', 'Debe seleccionar una fecha.');
+                        isValid = false;
+                    } else {
+                        const fechaSel = new Date(fInicio.value + 'T00:00:00');
+                        if (fechaSel > hoy) {
+                            showError(fInicio, 'errorFechaInicio', 'La fecha no puede ser futura.');
+                            isValid = false;
+                        } else {
+                            setValid(fInicio);
+                        }
+                    }
+                } else if (tipo === "semanal" || tipo === "mensual") {
+                    setValid(selectorTipo);
+                    let hasError = false;
+
+                    if (!fInicio.value) {
+                        showError(fInicio, 'errorFechaInicio', 'La fecha de inicio es obligatoria.');
+                        hasError = true;
+                        isValid = false;
+                    }
+                    if (!fFin.value) {
+                        showError(fFin, 'errorFechaFin', 'La fecha de fin es obligatoria.');
+                        hasError = true;
+                        isValid = false;
+                    }
+
+                    if (!hasError && fInicio.value && fFin.value) {
+                        const dInicio = new Date(fInicio.value + 'T00:00:00');
+                        const dFin = new Date(fFin.value + 'T00:00:00');
+
+                        if (dInicio > hoy) {
+                            showError(fInicio, 'errorFechaInicio', 'La fecha de inicio no puede ser futura.');
+                            isValid = false;
+                        }
+                        if (dFin > hoy) {
+                            showError(fFin, 'errorFechaFin', 'La fecha de fin no puede ser futura.');
+                            isValid = false;
+                        }
+                        if (dInicio > dFin) {
+                            showError(fInicio, 'errorFechaInicio', 'La fecha inicio no puede ser mayor a la fecha fin.');
+                            showError(fFin, 'errorFechaFin', 'La fecha fin debe ser mayor a la de inicio.');
+                            isValid = false;
+                        }
+
+                        if (isValid) {
+                            setValid(fInicio);
+                            setValid(fFin);
+                        }
+                    }
+                }
+
+                // Validación General: Evitar buscar en blanco
+                if (!tipo && !vendedor.value.trim() && !fInicio.value && !fFin.value) {
+                    showError(selectorTipo, null, 'Seleccione un período o ingrese un vendedor.');
+                    showError(vendedor, null, 'Ingrese un vendedor o seleccione un período.');
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            });
+
+            gestionarCampos();
         });
     </script>
 }
