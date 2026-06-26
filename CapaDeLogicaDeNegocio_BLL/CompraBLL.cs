@@ -1,12 +1,12 @@
 using CapaDeAccesoADatos_DAL;
 using CapaDeEntidades;
-using System.Collections.Generic;
 
 namespace CapaDeLogicaDeNegocio_BLL
 {
     public class CompraBLL
     {
         private readonly CompraDAL _compraDAL = new CompraDAL();
+        private readonly AuditoriaBLL _auditoriaBLL = BLLFactory.CrearAuditoriaBLL();
 
         public (bool exito, int idCompra, string mensaje) RegistrarCompra(Compra compra)
         {
@@ -36,7 +36,13 @@ namespace CapaDeLogicaDeNegocio_BLL
                     compra.Total += detalle.Subtotal;
             }
 
-            return _compraDAL.RegistrarCompra(compra);
+            var resultado = _compraDAL.RegistrarCompra(compra);
+
+            // Registro auditoria
+            if (resultado.exito)
+                _auditoriaBLL.Registrar(compra.IdUsuario, "Nueva compra", $"Registró la compra N° {resultado.idCompra} por ${compra.Total:F2}");
+
+            return resultado;
         }
     }
 }

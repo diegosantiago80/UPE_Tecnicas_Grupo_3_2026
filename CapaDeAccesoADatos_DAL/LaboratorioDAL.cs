@@ -28,15 +28,27 @@ namespace CapaDeAccesoADatos_DAL
             using (SqlCommand cmd = new SqlCommand("SP_RecuperarLaboratorios", con))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                try
-                {
-                    con.Open();
-                    using (SqlDataReader dr = cmd.ExecuteReader())
-                        while (dr.Read()) lista.Add(MapearLaboratorio(dr));
-                }
-                catch { }
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                    while (dr.Read()) lista.Add(MapearLaboratorio(dr));
             }
             return lista;
+        }
+
+        public Laboratorio? ObtenerPorId(int idLaboratorio)
+        {
+            using (SqlConnection con = new SqlConnection(Conexion.CadenaDeConexion))
+            using (SqlCommand cmd = new SqlCommand("SP_ObtenerLaboratorioPorId", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdLaboratorio", idLaboratorio);
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    if (dr.Read()) return MapearLaboratorio(dr);
+                }
+            }
+            return null;
         }
 
         public List<Laboratorio> ObtenerActivos()
@@ -46,13 +58,9 @@ namespace CapaDeAccesoADatos_DAL
             using (SqlCommand cmd = new SqlCommand("SP_RecuperarLaboratoriosActivos", con))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                try
-                {
-                    con.Open();
-                    using (SqlDataReader dr = cmd.ExecuteReader())
-                        while (dr.Read()) lista.Add(MapearLaboratorio(dr));
-                }
-                catch { }
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                    while (dr.Read()) lista.Add(MapearLaboratorio(dr));
             }
             return lista;
         }

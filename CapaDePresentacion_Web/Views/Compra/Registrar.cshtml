@@ -111,9 +111,9 @@
             const cant         = parseInt(document.getElementById("cantidad").value);
             const precioUnit   = parseFloat(document.getElementById("precioUnitario").value);
 
-            if (!idMed)          { alert("Seleccione un medicamento"); return; }
-            if (cant <= 0)       { alert("La cantidad debe ser mayor a 0"); return; }
-            if (precioUnit <= 0) { alert("El precio unitario debe ser mayor a 0"); return; }
+            if (!idMed)          { Swal.fire({ icon: "warning", title: "Medicamento requerido", text: "Seleccione un medicamento.", confirmButtonColor: "#0d6efd" }); return; }
+            if (cant <= 0)       { Swal.fire({ icon: "warning", title: "Cantidad inválida", text: "La cantidad debe ser mayor a 0.", confirmButtonColor: "#0d6efd" }); return; }
+            if (precioUnit <= 0) { Swal.fire({ icon: "warning", title: "Precio inválido", text: "El precio unitario debe ser mayor a 0.", confirmButtonColor: "#0d6efd" }); return; }
 
             // evitar duplicados — si ya esta lo reemplaza
             detalleCompra = detalleCompra.filter(x => x.IdMedicamento != parseInt(idMed));
@@ -160,8 +160,8 @@
         document.getElementById("btnFinalizar").addEventListener("click", function () {
             const idLab = document.getElementById("idLaboratorio").value;
 
-            if (!idLab)                  { alert("Debe seleccionar un laboratorio"); return; }
-            if (detalleCompra.length === 0) { alert("Debe agregar al menos un producto"); return; }
+            if (!idLab)                     { Swal.fire({ icon: "warning", title: "Laboratorio requerido", text: "Debe seleccionar un laboratorio.", confirmButtonColor: "#0d6efd" }); return; }
+            if (detalleCompra.length === 0) { Swal.fire({ icon: "warning", title: "Sin productos", text: "Debe agregar al menos un producto.", confirmButtonColor: "#0d6efd" }); return; }
 
             // armar el DTO completo
             const request = {
@@ -176,16 +176,22 @@
             })
             .then(async response => {
                 if (response.ok) {
-                    alert("Compra registrada correctamente. El stock fue actualizado.");
-                    window.location.href = '/Medicamento/Index';
+                    Swal.fire({
+                        icon: "success",
+                        title: "Compra registrada",
+                        text: "El stock fue actualizado correctamente.",
+                        confirmButtonColor: "#198754",
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => window.location.href = '/Medicamento/Index');
                 } else {
                     const msg = await response.text();
-                    alert("Error al procesar la compra: " + msg);
+                    Swal.fire({ icon: "error", title: "Error al procesar", text: msg, confirmButtonColor: "#0d6efd" });
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("Error de red o conexion.");
+                Swal.fire({ icon: "error", title: "Error de red", text: "No se pudo conectar con el servidor.", confirmButtonColor: "#0d6efd" });
             });
         });
     </script>

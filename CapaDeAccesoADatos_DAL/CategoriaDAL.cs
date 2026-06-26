@@ -14,22 +14,18 @@ namespace CapaDeAccesoADatos_DAL
             using (SqlCommand cmd = new SqlCommand("SP_RecuperarCategorias", con))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                try
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
                 {
-                    con.Open();
-                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    while (dr.Read())
                     {
-                        while (dr.Read())
-                        {
-                            lista.Add(new Categoria(
-                                Convert.ToInt32(dr["IdCategoria"]),
-                                dr["Nombre"].ToString() ?? string.Empty,
-                                dr["Descripcion"].ToString() ?? string.Empty
-                            ));
-                        }
+                        lista.Add(new Categoria(
+                            Convert.ToInt32(dr["IdCategoria"]),
+                            dr["Nombre"].ToString() ?? string.Empty,
+                            dr["Descripcion"].ToString() ?? string.Empty
+                        ));
                     }
                 }
-                catch { }
             }
             return lista;
         }

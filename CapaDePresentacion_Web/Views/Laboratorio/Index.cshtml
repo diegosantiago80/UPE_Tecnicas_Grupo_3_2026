@@ -60,10 +60,10 @@
                         <a asp-action="Gestionar" asp-route-id="@item.IdLaboratorio" class="btn btn-sm btn-outline-primary">Editar</a>
                         @if (item.Activo)
                         {
-                            <form asp-action="DarDeBaja" method="post" class="d-inline"
-                                  onsubmit="return confirm('¿Dar de baja a @item.RazonSocial?')">
+                            <form asp-action="DarDeBaja" method="post" class="d-inline form-baja">
                                 <input type="hidden" name="id" value="@item.IdLaboratorio" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Dar de baja</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-confirmar-baja"
+                                        data-nombre="@item.RazonSocial">Dar de baja</button>
                             </form>
                         }
                     </td>
@@ -72,3 +72,26 @@
         </tbody>
     </table>
 </div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll(".btn-confirmar-baja").forEach(btn => {
+            btn.addEventListener("click", function () {
+                const nombre = this.dataset.nombre;
+                const form = this.closest("form");
+                Swal.fire({
+                    icon: "warning",
+                    title: "¿Dar de baja?",
+                    html: `Esta acción desactivará a <strong>${nombre}</strong>.`,
+                    showCancelButton: true,
+                    confirmButtonText: "Sí, dar de baja",
+                    cancelButtonText: "Cancelar",
+                    confirmButtonColor: "#dc3545",
+                    cancelButtonColor: "#6c757d"
+                }).then(result => {
+                    if (result.isConfirmed) form.submit();
+                });
+            });
+        });
+    </script>
+}

@@ -20,6 +20,7 @@ namespace CapaDeAccesoADatos_DAL
                 Convert.ToInt32(dr["StockMinimo"]),
                 Convert.ToBoolean(dr["RequiereReceta"]),
                 Convert.ToInt32(dr["IdCategoria"]),
+                Convert.ToInt32(dr["IdLaboratorio"]),
                 Convert.ToBoolean(dr["Activo"])
             );
         }
@@ -31,15 +32,41 @@ namespace CapaDeAccesoADatos_DAL
             using (SqlCommand cmd = new SqlCommand("SP_RecuperarMedicamentos", con))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                try
-                {
-                    con.Open();
-                    using (SqlDataReader dr = cmd.ExecuteReader())
-                        while (dr.Read()) lista.Add(MapearMedicamento(dr));
-                }
-                catch { }
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                    while (dr.Read()) lista.Add(MapearMedicamento(dr));
             }
             return lista;
+        }
+
+        public List<Medicamento> ObtenerActivos()
+        {
+            var lista = new List<Medicamento>();
+            using (SqlConnection con = new SqlConnection(Conexion.CadenaDeConexion))
+            using (SqlCommand cmd = new SqlCommand("SP_RecuperarMedicamentosActivos", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                    while (dr.Read()) lista.Add(MapearMedicamento(dr));
+            }
+            return lista;
+        }
+
+        public Medicamento? ObtenerPorId(int idMedicamento)
+        {
+            using (SqlConnection con = new SqlConnection(Conexion.CadenaDeConexion))
+            using (SqlCommand cmd = new SqlCommand("SP_ObtenerMedicamentoPorId", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdMedicamento", idMedicamento);
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    if (dr.Read()) return MapearMedicamento(dr);
+                }
+            }
+            return null;
         }
 
         public List<Medicamento> ObtenerCriticos()
@@ -49,13 +76,9 @@ namespace CapaDeAccesoADatos_DAL
             using (SqlCommand cmd = new SqlCommand("SP_RecuperarMedicamentosCriticos", con))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                try
-                {
-                    con.Open();
-                    using (SqlDataReader dr = cmd.ExecuteReader())
-                        while (dr.Read()) lista.Add(MapearMedicamento(dr));
-                }
-                catch { }
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                    while (dr.Read()) lista.Add(MapearMedicamento(dr));
             }
             return lista;
         }

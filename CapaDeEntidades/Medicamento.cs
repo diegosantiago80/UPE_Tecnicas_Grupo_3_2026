@@ -38,7 +38,7 @@ namespace CapaDeEntidades
 
         public Medicamento() { }
 
-        public Medicamento(int idMedicamento, string nombre, string descripcion, decimal precioVenta, decimal precioCompra, int stockActual, int stockMinimo, bool requiereReceta, int idCategoria, bool activo)
+        public Medicamento(int idMedicamento, string nombre, string descripcion, decimal precioVenta, decimal precioCompra, int stockActual, int stockMinimo, bool requiereReceta, int idCategoria, int idLaboratorio, bool activo)
         {
             _idMedicamento = idMedicamento;
             _nombre = nombre;
@@ -49,6 +49,7 @@ namespace CapaDeEntidades
             _stockMinimo = stockMinimo;
             _requiereReceta = requiereReceta;
             _idCategoria = idCategoria;
+            _idLaboratorio = idLaboratorio;
             _activo = activo;
         }
     }
